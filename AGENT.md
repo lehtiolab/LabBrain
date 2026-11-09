@@ -35,7 +35,7 @@ jobs will run unattended at night.
 | part | role | state |
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
-| `labbrain.cli` | `labbrain <command>`, 8 commands; reads the settings | works |
+| `labbrain.cli` | `labbrain <command>`, 9 commands; reads the settings | works |
 | `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
 | `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift` | first versions |
@@ -63,6 +63,10 @@ skills and patterns come back here by pull request; raw traces never do.
 - **Agent metadata on a note needs its author's consent:** `annotate: true` in the note's header,
   written by `frontmatter` from the author's own `LABBRAIN_ANNOTATE`. What an agent adds is recorded
   in `annotated`. Never decided by whoever runs the job.
+- **Agents add and commit in the wiki's repos, and never push.** A person pushes, to `main` and to
+  `production` alike. No command, skill or job runs `git push`.
+- **Each job commits its own work with `labbrain commit`** before it ends, so a run can be reverted
+  on its own.
 - **Provenance is git blob hashes** (`git hash-object`), so `git cat-file -p` recovers the exact
   version a summary was built from.
 - **The frontmatter parser is hand-written,** so key order, flow mappings and quoting survive a

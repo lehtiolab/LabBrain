@@ -57,19 +57,20 @@ the wiki without `--vault`.
   before it that were fine.
 
 ## Actors: `--by`
-`stamp`, `drift-stamp` and `frontmatter` write who did the work into the files they change:
+`stamp`, `drift-stamp` and `frontmatter` write who did the work into the files they change, and
+`commit` makes it the commit's author:
 - **an agent,** as `<tool>/<model>`: `claude-code/claude-opus-5-5`, `open-llm/qwen3-235b`;
 - **a person,** as `human:<name>`: `human:ada`.
 
 Never write an email address in an actor. `stamp` and `drift-stamp` have no default, because the
 actor must name the model that actually did the work. `frontmatter` falls back to
-`LABBRAIN_CONTRIBUTOR` (see [Configuration](configuration.md)).
+`LABBRAIN_CONTRIBUTOR` (see [Configuration](configuration.md)). `commit` refuses an actor with an `@`.
 
 ## Exit status
 | status | means |
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
-| 1 | `check` found problems, `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
+| 1 | `check` found problems (or `commit` did, so it committed nothing), `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
 | 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, or a bad setting. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
@@ -85,6 +86,7 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`links`](#labbrain-links) | the notes' link syntax, and the hashes recorded in summaries |
 | [`hot`](#labbrain-hot) | nothing |
 | [`drift-stamp`](#labbrain-drift-stamp) | the summaries' `drift_verification` |
+| [`commit`](#labbrain-commit) | a commit in each git repo with changes; never pushes |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -408,6 +410,32 @@ $ labbrain drift-stamp --by claude-code/claude-opus-5-5 Garden/Tomatoes.md
 nothing due for Garden/Tomatoes.md
 ```
 
+### labbrain commit
+```
+labbrain commit --by ACTOR -m MESSAGE [--vault DIR]
+```
+Run at the end of every job, by the job itself, so each run can be reverted on its own. It first
+runs [`check`](#labbrain-check): if anything is off, it prints the problems, commits nothing and
+exits with 1. Otherwise, in each git repo of the wiki, it stages every change (`git add -A`, so
+`.gitignore` applies) and commits it with MESSAGE.
+- **ACTOR is the author,** in both the name and the email field (`claude-code/claude-opus-5-5
+  <claude-code/claude-opus-5-5>`), because no email address goes in a commit. It is the committer
+  too, unless git's environment sets one.
+- **A repo inside another is left out of the outer one,** so the outer repo never records it as an
+  embedded repo. Still list it in the outer repo's `.gitignore`, or `git status` shows it as untracked.
+- **It never pushes.** A person reviews the commits and pushes them.
+- `--by` and `-m` (`--message`) are required; without them it prints the usage and exits with 2.
+
+It prints `committed <short hash> in <repo>` for each repo it committed in (`.` is the wiki's root),
+or `nothing to commit`.
+
+```
+$ labbrain commit --by claude-code/claude-opus-5-5 -m "index: watered tomatoes"
+committed 022755f in .
+$ labbrain commit --by claude-code/claude-opus-5-5 -m "index: watered tomatoes"
+nothing to commit
+```
+
 ## Common sequences
 **After notes changed** (the code steps of the `index` skill):
 ```sh
@@ -418,6 +446,7 @@ labbrain links
 labbrain stamp --by <tool>/<model> Garden/Garden_summary.md
 labbrain index
 labbrain check
+labbrain commit --by <tool>/<model> -m "index: <what changed>"
 ```
 
 **A drift scan** (the code steps of the `drift` skill):
@@ -427,6 +456,7 @@ labbrain hot
 # compare and fix the due summaries (the drift skill), then, for each hot file checked:
 labbrain drift-stamp --by <tool>/<model> Garden/Tomatoes.md
 labbrain check
+labbrain commit --by <tool>/<model> -m "drift: <what was checked>"
 ```
 
 **In a script, a git hook or a scheduled job:** `labbrain check` exits with 1 when anything is off.

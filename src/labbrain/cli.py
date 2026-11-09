@@ -14,7 +14,7 @@ from .okf.check import check
 from .okf.drift import RECHECK, drift_stamp, hot, is_due
 from .okf.files import RESERVED, md_files, read, text_files, write
 from .okf.frontmatter import content_hash, fm_get, split_fm
-from .okf.git import git_hashes
+from .okf.git import commit, git_hashes
 from .okf.index import OKF_VERSION, build_indexes
 from .okf.links import carry_hashes, convert_links, name_index
 from .okf.notes import add_frontmatter
@@ -38,6 +38,8 @@ COMMANDS = {
     "check.",
     "drift-stamp": "After a drift check of FILE: set its drift_verification entry in each SUMMARY, "
     "by default every summary that `hot` shows as due for FILE.",
+    "commit": "At the end of a job: once check passes, stage and commit every change in each git "
+    "repo of the vault, with ACTOR as the author. Never pushes: a person does that.",
 }
 
 
@@ -141,7 +143,7 @@ def parser():
         name: sub.add_parser(name, parents=[vault], help=text, description=text)
         for name, text in COMMANDS.items()
     }
-    for name in ("stamp", "drift-stamp"):
+    for name in ("stamp", "drift-stamp", "commit"):
         cmds[name].add_argument(
             "--by", metavar="ACTOR", help="who did it, e.g. claude-code/claude-opus-5-5"
         )
@@ -150,6 +152,7 @@ def parser():
         metavar="ACTOR",
         help="the notes' author, as human:<name> (default: LABBRAIN_CONTRIBUTOR)",
     )
+    cmds["commit"].add_argument("-m", "--message", help="the commit message")
     cmds["stamp"].add_argument("files", nargs="*", metavar="SUMMARY")
     cmds["links"].add_argument("files", nargs="*", metavar="FILE")
     cmds["drift-stamp"].add_argument("files", nargs="*", metavar="FILE [SUMMARY...]")
@@ -339,4 +342,23 @@ def main(argv=None):
         if not stamped and not refused:
             print("nothing due for", p)
         return 1 if refused else 0
+    if cmd == "commit":
+        if not args.by or not args.message:
+            print("usage: commit --by ACTOR -m MESSAGE   (e.g. --by claude-code/claude-opus-5-5)")
+            return 2
+        if "@" in args.by:
+            print("an actor is a tool or a person, never an email address:", args.by)
+            return 2
+        problems = check(vault)
+        for p, msg in problems:
+            print("%s: %s" % (p, msg))
+        if problems:
+            print("%d problem(s), so nothing was committed." % len(problems))
+            return 1
+        done = commit(vault, args.by, args.message)
+        for repo, short in done:
+            print("committed %s in %s" % (short, repo or "."))
+        if not done:
+            print("nothing to commit")
+        return 0
     return 2

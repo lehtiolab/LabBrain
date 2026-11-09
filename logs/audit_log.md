@@ -265,3 +265,20 @@ works with pixi and uv.
   3.13, but the Linux runs are unverified: Docker wasn't running to try them first.
 - **The pre-commit environments aren't cached in CI,** so the checks download ruff and
   detect-secrets on each run, which takes a few seconds.
+
+## 2026-11-09 — uncommitted — Agents commit, people push
+
+**Decided:**
+- **Agents add and commit in the wiki's repos, and never push.** A person pushes to `main`, and
+  promotes to `production`.
+- **Each job (index, drift, audit, ingestion) commits its own work with `labbrain commit`,** rather
+  than a scheduler committing for it.
+
+**Why:** the user's decision, while starting the version control agent. A push publishes the
+wiki's data to the remote and is hard to take back, so a person stays in charge of it. A commit per
+job keeps each run revertible on its own.
+
+**Cost:**
+- **This differs from the team meeting,** which said the version control agent needs no humans.
+  Night runs now leave local commits that wait for a person to push.
+- **`labbrain commit` doesn't exist yet,** so the second rule names a command still to be written.

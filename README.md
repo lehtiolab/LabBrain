@@ -65,6 +65,7 @@ the wiki, run `pixi run --manifest-path <LabBrain>/pixi.toml labbrain <command>`
 | `labbrain links [FILE...]` | turns `[[wikilinks]]` into relative markdown links |
 | `labbrain hot` | often-changed files, the files that cite them, and which are due a drift check |
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check |
+| `labbrain commit --by ACTOR -m MESSAGE` | at the end of a job: commits its changes in each repo, once `check` passes; never pushes |
 
 ## Skills
 Instructions for an agent working on a wiki, in the `SKILL.md` format. Load the ones a job needs.
