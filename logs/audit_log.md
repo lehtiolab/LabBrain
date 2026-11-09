@@ -18,7 +18,7 @@ filled in once it does.
 
 ---
 
-## 2026-11-09 — uncommitted — A Python package, not a shell script, not Rust
+## 2026-11-09 — 767c183 — A Python package, not a shell script, not Rust
 
 **Decided:** LabBrain is a Python package (`src/labbrain/`, standard library only at runtime), with
 pixi and uv as its environments. The OKF tool `okf_vault.sh` was already about 1,100 lines of Python
@@ -45,7 +45,7 @@ in a 15-line `sh` wrapper. The wrapper existed only because the vault's `.gitign
   its copy until it is replaced by a two-line shim, which is not done yet.
 - **Nix was dropped.** pixi supplies Python and `git` instead.
 
-## 2026-11-09 — uncommitted — Layout: skills seed, wikis evolve; patterns hold traces
+## 2026-11-09 — 767c183 — Layout: skills seed, wikis evolve; patterns hold traces
 
 **Decided:**
 - **The vault's AGENT.md became skills.** The way it reads the vault became `search`, a read-only
@@ -66,7 +66,7 @@ in a 15-line `sh` wrapper. The wrapper existed only because the vault's `.gitign
 inside the vault, `labbrain check` will ask for an OKF `type` in each SKILL.md, which the SKILL.md
 format doesn't have.
 
-## 2026-11-09 — uncommitted — Parity tests before the split
+## 2026-11-09 — 767c183 — Parity tests before the split
 
 **Decided:** The script moved, unchanged, to `tests/reference/okf_vault.sh`, and
 `tests/test_parity.py` runs it next to the package on two copies of a dummy vault with git history.
@@ -83,7 +83,7 @@ than a rewrite.
   paths it must reach.
 - **On the real vault**, `check`, `stale` and `hot` gave byte-identical output from both.
 
-## 2026-11-09 — uncommitted — Deliberate differences from okf_vault.sh
+## 2026-11-09 — 767c183 — Deliberate differences from okf_vault.sh
 
 **Decided:**
 - **Finding the vault:** from the working directory (the script's own location no longer means
@@ -105,7 +105,7 @@ although the plan listed them for configuration. No second wiki needs other valu
 types (Kanban, Daily Recap) and `.nix` are harmless in a wiki that doesn't have them. Configuration
 waits until a second wiki asks for it.
 
-## 2026-11-09 — uncommitted — Open: should `.gitignore` be an allowlist?
+## 2026-11-09 — 767c183 — Open: should `.gitignore` be an allowlist?
 
 **Open:** the `.gitignore` is a denylist (a new file is tracked unless a rule says otherwise).
 Patrick's note at the top of `.gitignore`:
@@ -124,7 +124,7 @@ Patrick's note at the top of `.gitignore`:
 - **Still to decide:** whether LabBrain's jobs should refuse to commit files over a size limit, or
   outside an allowed set of types, in a wiki, whichever way this repo's `.gitignore` goes.
 
-## 2026-11-09 — uncommitted — Cleanup: task boards out, dead code out, paths checked
+## 2026-11-09 — 767c183 — Cleanup: task boards out, dead code out, paths checked
 
 **Decided:**
 - **Task boards are a separate feature.** The Obsidian Kanban plugin's format gets no special
@@ -155,7 +155,7 @@ Obsidian). The path problem turned up while checking how the skills tell an agen
 - **The dummy vault changed.** `Board.md` is gone, and `Kitchen/Shopping.md` takes over its other
   job: a note with frontmatter but no `type`.
 
-## 2026-11-09 — uncommitted — Settings in env/, and docs/
+## 2026-11-09 — 767c183 — Settings in env/, and docs/
 
 **Decided:**
 - **`env/.env` holds settings about the person,** with a tracked `env/.env.example` in which every
@@ -200,7 +200,7 @@ email address must never reach a note.
   summary, so given a raw note it rewrites the note's frontmatter as a summary's. This comes from
   `okf_vault.sh`, and `docs/usage.md` says so.
 
-## 2026-11-09 — uncommitted — A note's text is untouchable; its header takes metadata with consent
+## 2026-11-09 — 767c183 — A note's text is untouchable; its header takes metadata with consent
 
 **Decided:**
 - **The rule is about a raw note's text, not its header.** Adding agent-readable metadata to the
@@ -237,7 +237,7 @@ the author's own settings.
   first job that needs it.
 - **`stamp` differs from `okf_vault.sh`** on a non-summary argument; the parity cases never pass one.
 
-## 2026-11-09 — uncommitted — CI on GitHub, and the pre-push hook for both tools
+## 2026-11-09 — 0ed7507 — CI on GitHub, and the pre-push hook for both tools
 
 **Decided:**
 - **`.github/workflows/ci.yml` runs on every push to `main` and every pull request.**
@@ -266,7 +266,7 @@ works with pixi and uv.
 - **The pre-commit environments aren't cached in CI,** so the checks download ruff and
   detect-secrets on each run, which takes a few seconds.
 
-## 2026-11-09 — uncommitted — The personal vault runs labbrain; its okf_vault.sh is deleted
+## 2026-11-09 — ff80dae — The personal vault runs labbrain; its okf_vault.sh is deleted
 
 **Decided:** The personal vault no longer has `okf_vault.sh`. It runs `labbrain` instead, and reads
 LabBrain's base skills in place rather than copying them. Its own skills are in the vault's
@@ -292,7 +292,7 @@ and stays the parity contract.
 - **That due rule is half of `hot`'s:** it counts changes to the board, not edits to the summary.
 - **A fix on `main` reaches the vault only once it is merged into `vaults`.**
 
-## 2026-11-09 — uncommitted — links removes an emptied drift_verification key
+## 2026-11-09 — ff80dae — links removes an emptied drift_verification key
 
 **Discovered:** When `links` dropped a summary's last drift record, because the checked file was
 deleted or moved, it left `drift_verification:` with nothing under it: `drift_lines([])` still
