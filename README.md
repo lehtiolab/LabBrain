@@ -115,5 +115,13 @@ Read [AGENT.md](AGENT.md) first: it holds the rules for this repo, for people an
   pixi run -e py311 test
   pixi run -e dev lint
   ```
-  To have the lint and secret checks run before every push, also run
-  `pixi run -e dev pre-commit install --hook-type pre-push`.
+  With uv, `uv run --extra dev pytest` runs the tests.
+- **The pre-push hook** runs the lint and secret checks before every push. Install it once in each
+  clone, with either tool:
+  ```sh
+  pixi run -e dev pre-commit install --hook-type pre-push
+  uv run --extra dev pre-commit install --hook-type pre-push
+  ```
+- **GitHub runs it all again** on every push to `main` and every pull request
+  ([.github/workflows/ci.yml](.github/workflows/ci.yml)): the tests under pixi (Python 3.13 and 3.11)
+  and under uv (3.11 and 3.13), with both lock files enforced, and the hook's checks.

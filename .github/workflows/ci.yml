@@ -1,0 +1,53 @@
+# Tests and checks on every push to main and every pull request, with both environment tools:
+# pixi (Python and git from conda-forge, pixi.lock) and uv (packages from PyPI, uv.lock).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The jobs only read the code and run it.
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the run it makes obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Actions are pinned to a commit, with the release it is in a comment: a tag can be moved to other
+# code, a commit can't.
+jobs:
+  pixi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Installs with --locked, so a pixi.lock that is out of date fails here.
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.83.0
+          environments: dev py311
+      - run: pixi run -e dev test
+      - run: pixi run -e py311 test # the oldest Python that requires-python promises
+      # The pre-push hook's checks (ruff, detect-secrets), for anyone who didn't install it.
+      - run: pixi run -e dev pre-commit run --all-files --hook-stage pre-push --show-diff-on-failure
+
+  uv:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+          python-version: ${{ matrix.python }}
+      # --locked fails if uv.lock is out of date.
+      - run: uv run --locked --extra dev pytest

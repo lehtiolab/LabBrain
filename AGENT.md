@@ -163,6 +163,15 @@ and silently carried into projects where it doesn't apply.
     would resolve against LabBrain. From a wiki, use `pixi run --manifest-path <repo>/pixi.toml labbrain`.
   - **Environments:** `pixi run -e dev test` and `pixi run -e dev lint`, plus `-e py311`, the
     oldest Python that `requires-python` promises.
+- **CI** (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: pixi (`dev`,
+  `py311`, the pre-push checks) and uv (3.11, 3.13), each with its lock enforced.
+  - **Actions are pinned to a commit hash,** with the release in a comment. The token is read-only,
+    and the trigger is `pull_request`, never `pull_request_target`, so a fork's code never runs
+    with write access.
+  - **The pixi and uv versions in it match the ones the locks were made with.** Upgrading either
+    tool means updating `ci.yml`.
+- **The pre-push hook** is installed once per clone, with pixi or uv (README). It records the
+  Python it was installed with; the checks run in pre-commit's own environments, pinned by `rev`.
 - **Write code with the ponytail ladder.** Every change climbs it first, and stops at the highest
   rung that holds:
   1. does this need to exist at all;

@@ -43,6 +43,7 @@ The code is the source, and the docs follow it. When one of these changes, updat
 | the repo's layout | the folders | `README.md` (Layout), `docs/how-it-works.md`, `AGENT.md` (What LabBrain is) |
 | the skills | `skills/` | `README.md` (Skills), `docs/how-it-works.md` |
 | the modules | `src/labbrain/okf/` | `docs/writing-a-function.md` (Where it goes) |
+| the checks before a push, and in CI | `.pre-commit-config.yaml`, `.github/workflows/ci.yml` | `README.md` (Contributing), `docs/writing-a-function.md` (Before you push), `AGENT.md` (Conventions) |
 | the rules for contributors | `AGENT.md` | `docs/writing-a-function.md`, `docs/writing-a-skill.md`, `README.md` (Contributing) |
 
 AGENT.md holds the rules, and the docs explain them. When a doc and AGENT.md disagree, fix the doc,

@@ -126,3 +126,5 @@ pixi run -e dev test
 pixi run -e py311 test   # the oldest Python we support
 pixi run -e dev lint
 ```
+The pre-push hook (see the README) runs the lint and secret checks for you, and GitHub runs all of
+this again on every pull request.

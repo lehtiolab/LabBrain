@@ -236,3 +236,32 @@ the author's own settings.
   writes agent metadata (code writes the key and the entry, the model only the value) comes with the
   first job that needs it.
 - **`stamp` differs from `okf_vault.sh`** on a non-summary argument; the parity cases never pass one.
+
+## 2026-11-09 — uncommitted — CI on GitHub, and the pre-push hook for both tools
+
+**Decided:**
+- **`.github/workflows/ci.yml` runs on every push to `main` and every pull request.**
+  - **pixi:** the tests on Python 3.13 (`dev`) and 3.11 (`py311`), then the pre-push hook's checks
+    (ruff, detect-secrets) for anyone who didn't install the hook.
+  - **uv:** the tests on 3.11 and 3.13.
+  - Each job installs with its lock enforced, so a stale `pixi.lock` or `uv.lock` fails the run.
+- **Both tools are tested** because both are supported ways to install LabBrain, and each resolves
+  from its own lock and its own package source (conda-forge or PyPI).
+- **Hardening:** actions pinned to a commit hash (`actions/checkout` v7.0.1, `prefix-dev/setup-pixi`
+  v0.11.3, `astral-sh/setup-uv` v10.3.3), a read-only token, `persist-credentials: false`, and the
+  `pull_request` trigger, so a fork's code never runs with write access or secrets. pixi 0.83.0 and
+  uv 0.13.7 are pinned to the versions the locks were made with.
+- **Linux only.** Development happens on macOS, and the tests run there before a push; a macOS job
+  can be added if a platform-specific bug turns up.
+- **The pre-push hook works with either tool.** It records the Python it was installed with (pixi's
+  `dev` environment, or uv's `.venv`), and the checks run in pre-commit's own environments, pinned
+  by `rev`. Both were installed in a scratch copy and fired by a real `git push`.
+
+**Why:** the user asked for CI on pushes to `main` and on pull requests, and whether the hook
+works with pixi and uv.
+
+**Cost:**
+- **Not yet run on GitHub.** actionlint passes, and the uv job's steps pass locally on 3.11 and
+  3.13, but the Linux runs are unverified: Docker wasn't running to try them first.
+- **The pre-commit environments aren't cached in CI,** so the checks download ruff and
+  detect-secrets on each run, which takes a few seconds.
