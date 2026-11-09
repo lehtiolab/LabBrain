@@ -1,0 +1,36 @@
+# System packages only. Python packages are named in pyproject.toml and nowhere else.
+[workspace]
+name = "labbrain"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64"]
+
+# pixi intersects version constraints across features, so the base stays open and
+# each environment narrows it.
+[dependencies]
+python = ">=3.11"
+git = "*"
+uv = "*"
+
+[pypi-dependencies]
+labbrain = { path = ".", editable = true }
+
+[feature.dev.pypi-dependencies]
+labbrain = { path = ".", editable = true, extras = ["dev"] }
+
+[feature.py313.dependencies]
+python = "3.13.*"
+
+# The oldest Python that pyproject.toml's requires-python promises.
+[feature.py311.dependencies]
+python = "3.11.*"
+
+[environments]
+default = { features = ["py313"], solve-group = "main" }
+dev = { features = ["py313", "dev"], solve-group = "main" }
+py311 = { features = ["py311", "dev"], solve-group = "py311" }
+
+# No `labbrain` task: pixi runs tasks from this repo's root, so a wiki's relative paths would
+# resolve against LabBrain. `pixi run labbrain` runs the installed command where you stand.
+[tasks]
+test = "pytest"
+lint = "ruff check . && ruff format --check ."

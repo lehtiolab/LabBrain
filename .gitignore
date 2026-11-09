@@ -1,0 +1,40 @@
+# LabBrain — .gitignore. A denylist: new files are tracked unless a rule here says otherwise.
+# NOTE: This could be a case where we want to have a blacklist all, then selectively whitelist
+# The reason is that if could lead to adding heavy file to the commit tree instead of just the wiki
+# Data should be tracked by DVC or lakeFS.
+# --- Secrets ------------------------------------------------------------------
+.env
+.env.*
+*.env
+# The template is tracked; your env/.env stays ignored.
+!env/.env.example
+
+# --- Real wiki data -----------------------------------------------------------
+# Traces from a real wiki contain the lab's data: they stay in that wiki, never here.
+# patterns/examples/ holds dummy traces only.
+patterns/traces/
+
+# --- Agent stuff --------------------------------------------------------------
+.claude/
+.continue/
+
+# --- Environments -------------------------------------------------------------
+.pixi/
+.venv/
+venv/
+
+# --- Python -------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# --- OS -----------------------------------------------------------------------
+.DS_Store
+Thumbs.db

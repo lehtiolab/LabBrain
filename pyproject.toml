@@ -1,0 +1,39 @@
+[project]
+name = "labbrain"
+version = "0.1.0"
+description = "Tools and skills for agents that read and maintain an OKF lab wiki"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["python-dotenv>=1.0"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pre-commit",
+    "detect-secrets",
+]
+
+[project.scripts]
+labbrain = "labbrain.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["tests/reference"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+# The parity tests run the package as a subprocess, the way it is used.
+[tool.coverage.run]
+patch = ["subprocess"]
+source = ["labbrain"]

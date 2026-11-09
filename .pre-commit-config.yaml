@@ -1,0 +1,18 @@
+default_stages: [pre-push]
+repos:
+  # rev must track the locked ruff version (uv.lock, pixi.lock): otherwise the hook and
+  # `pixi run lint` reformat each other's output.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff-check
+        args: ['--fix']
+      - id: ruff-format
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        # The baseline stores hashed secrets, so scanning it re-reports what it suppresses.
+        exclude: ^\.secrets\.baseline$
