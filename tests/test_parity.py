@@ -98,6 +98,23 @@ def test_reference_sees_the_fixture(pair):
     assert "Garden/Tomatoes.md" in out and "never checked: DUE" in out
 
 
+def test_links_removes_an_emptied_drift_key(pair):
+    """A deliberate difference: when links drops a summary's last drift record, because its file
+    is gone, okf_vault.sh leaves `drift_verification:` with nothing under it; the package removes
+    the key. Everything else stays the same."""
+    summary = "Garden/Garden_summary.md"
+    same(pair, "drift-stamp", *BY, "Garden/Beans.md", summary)
+    for vault in pair:
+        (vault / "Garden" / "Beans.md").unlink()
+    ref, pkg = pair
+    assert run(PACKAGE, pkg, ["links"]) == run(REF, ref, ["links"])
+    want, got = snapshot(ref), snapshot(pkg)
+    assert "\ndrift_verification:\n" in want[summary]
+    assert "drift_verification" not in got[summary]
+    want[summary] = want[summary].replace("\ndrift_verification:\n", "\n", 1)
+    assert got == want
+
+
 def test_sequence(pair):
     """A night's work in order, so each command reads what the one before it wrote."""
     for args in [

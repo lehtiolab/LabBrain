@@ -138,7 +138,8 @@ def carry_hashes(vault, before, before_content=None):
         if drift != fm_drift(
             fm
         ):  # a drift check of the old version still holds after a link-only edit
-            managed[DRIFT_KEY] = drift_lines(drift)
+            # no lines once the last record is dropped: assemble() then removes the key
+            managed[DRIFT_KEY] = drift_lines(drift) if drift else []
         if managed:
             write(vault, s, with_fm(assemble(fm, managed, body), body))
             updated.append(s)

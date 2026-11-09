@@ -87,6 +87,8 @@ skills and patterns come back here by pull request; raw traces never do.
     - `stamp` refuses a file that isn't a folder summary, before writing anything;
     - no task-board or Daily Recap handling;
     - a file argument outside the vault is refused, before anything is written;
+    - `links` removes `drift_verification` when it drops the last record, instead of leaving the
+      key empty;
     - argparse handles usage and help.
 
 ---

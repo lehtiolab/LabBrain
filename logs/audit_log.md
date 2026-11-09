@@ -265,3 +265,50 @@ works with pixi and uv.
   3.13, but the Linux runs are unverified: Docker wasn't running to try them first.
 - **The pre-commit environments aren't cached in CI,** so the checks download ruff and
   detect-secrets on each run, which takes a few seconds.
+
+## 2026-11-09 — uncommitted — The personal vault runs labbrain; its okf_vault.sh is deleted
+
+**Decided:** The personal vault no longer has `okf_vault.sh`. It runs `labbrain` instead, and reads
+LabBrain's base skills in place rather than copying them. Its own skills are in the vault's
+`skills/`: *recap* (a daily recap of the Kanban board's priorities), *kanban* (the board) and
+*commit* (`sync_vault.sh` across its three repos). Its settings are in the vault's own `env/.env`,
+read through `LABBRAIN_ENV`. It runs a local `vaults` branch, checked out as a separate worktree, so
+work on `main` doesn't reach it until its author merges `main` into `vaults` by hand.
+
+This settles the cost noted in the first entry: the script and the package no longer run side by
+side, and no shim was needed. `tests/reference/okf_vault.sh` is now the only copy of the script,
+and stays the parity contract.
+
+**Why:** the user's decision. Before the switch, both were run on the vault:
+- `check` and `stale` printed the same output;
+- `hot` differed only in no longer listing the task board;
+- `frontmatter`, `links`, `index` and `stamp` left identical copies of the vault.
+
+**Cost:**
+- **Board handling stays out of LabBrain,** because it is an Obsidian plugin's format. The vault's
+  *kanban* skill does it instead. It reads broken board links from the `unresolved` lines of
+  `labbrain links`, decides which summaries are due a drift check against the board with git, and
+  records each check with `labbrain drift-stamp`, naming the summaries.
+- **That due rule is half of `hot`'s:** it counts changes to the board, not edits to the summary.
+- **A fix on `main` reaches the vault only once it is merged into `vaults`.**
+
+## 2026-11-09 — uncommitted — links removes an emptied drift_verification key
+
+**Discovered:** When `links` dropped a summary's last drift record, because the checked file was
+deleted or moved, it left `drift_verification:` with nothing under it: `drift_lines([])` still
+returns the key's line. `okf_vault.sh` does the same. It showed in the personal vault when its
+`okf_vault.sh` was deleted, since a summary's only record was a check against that script.
+
+**Decided:**
+- `carry_hashes` passes no lines once the list is empty, and `assemble` then removes the key.
+- `test_links_removes_an_emptied_drift_key` runs both on the dummy vault and expects this to be the
+  only difference.
+- AGENT.md lists the change among the known differences, and `docs/usage.md` describes it.
+
+**Why:** an empty key reads as "never checked", so nothing broke, but it was noise in the
+frontmatter, and it stayed until the next `drift-stamp`. No parity case reached it: the dummy vault
+never deleted a file that had a drift record.
+
+**Cost:** a key left empty before the fix stays until the next `drift-stamp` refills it, because
+`links` rewrites a summary only when its records change. The personal vault's one case was removed
+by hand.

@@ -322,7 +322,8 @@ and `log.md`:
 Then it **carries the summaries' hashes forward.** A summary whose recorded hash matched a file
 before the rewrite gets the file's new hash, so a link-only edit doesn't make it look stale. The same
 goes for the hashes in `drift_verification`, and a drift record of a file that no longer exists is
-dropped. Real changes made before the run still show as stale.
+dropped, along with the `drift_verification` key itself once its last record goes. Real changes
+made before the run still show as stale.
 
 It prints `rewrote links: <file>` and `carried hashes forward: <summary>`, and exits with 0.
 
