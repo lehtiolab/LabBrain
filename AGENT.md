@@ -19,10 +19,14 @@
 |---|---|---|
 | `AGENT.md` | rules for working on this repo, and its state now | every session, first |
 | `skills/*/SKILL.md` | instructions for agents working **on a wiki**, not on this repo | when changing a skill, or the code a skill calls |
-| `dev-skills/*/SKILL.md` | skills for working **on this repo**: `update-docs` | when doing that job |
+| `dev-skills/*/SKILL.md` | skills for working **on this repo**: `update-docs`, `logging` | when doing that job |
 | `docs/*.md` | how-to guides, usage and configuration, for people and agents: explanations, not rules | when changing what they describe |
 | `patterns/README.md` | the trace and pattern formats | before writing code that records runs |
 | `logs/audit_log.md` | when and why each decision was taken: appended, never rewritten | **never by default** |
+
+> **Every session, before anything else:** `sh dev-skills/logging/pending.sh`. If it lists entries,
+> tell the user there are uncommitted decisions in the audit log and stop; on their go-ahead, follow
+> `dev-skills/logging`. Decisions are logged only through that skill.
 
 ---
 
@@ -165,6 +169,8 @@ and silently carried into projects where it doesn't apply.
     would resolve against LabBrain. From a wiki, use `pixi run --manifest-path <repo>/pixi.toml labbrain`.
   - **Environments:** `pixi run -e dev test` and `pixi run -e dev lint`, plus `-e py311`, the
     oldest Python that `requires-python` promises.
+- **Nothing is committed on `main`.** Work goes on a `feat/<topic>` branch and reaches `main` by
+  pull request. Agents never push.
 - **CI** (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: pixi (`dev`,
   `py311`, the pre-push checks) and uv (3.11, 3.13), each with its lock enforced.
   - **Actions are pinned to a commit hash,** with the release in a comment. The token is read-only,

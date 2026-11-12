@@ -86,5 +86,5 @@ like code.
 
 ## Skills for working on this repo
 The skills in `skills/` are for agents working on a wiki. Skills for developing LabBrain itself
-(today only `update-docs`) live in `dev-skills/`, so that a wiki copying `skills/` doesn't pick them
+(`update-docs` and `logging`) live in `dev-skills/`, so that a wiki copying `skills/` doesn't pick them
 up. They use the same format and the same tests.
