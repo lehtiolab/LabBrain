@@ -5,7 +5,7 @@
 **Lean. Rules, not essays.**
 
 - **A rule is one or two lines.** If it needs a paragraph to justify it, the rule stays here and
-  the justification goes in `logs/audit_log.md`.
+  the justification goes in the audit log (`dev-skills/logging`) or the pull request.
 - **Write only what the code cannot say.** Invariants, traps, decisions and costs. If reading the
   code would tell you, cut it.
 - **No history, no dates, no "decided on".** This is the current state only; history goes in the
@@ -19,10 +19,15 @@
 |---|---|---|
 | `AGENT.md` | rules for working on this repo, and its state now | every session, first |
 | `skills/*/SKILL.md` | instructions for agents working **on a wiki**, not on this repo | when changing a skill, or the code a skill calls |
-| `dev-skills/*/SKILL.md` | skills for working **on this repo**: `update-docs` | when doing that job |
+| `dev-skills/*/SKILL.md` | skills for working **on this repo**: `update-docs`, `logging` | when doing that job |
 | `docs/*.md` | how-to guides, usage and configuration, for people and agents: explanations, not rules | when changing what they describe |
 | `patterns/README.md` | the trace and pattern formats | before writing code that records runs |
-| `logs/audit_log.md` | when and why each decision was taken: appended, never rewritten | **never by default** |
+| `logs/decisions/` | when and why each decision from an agent session was taken: one file per decision; `sh dev-skills/logging/log.sh` prints them as the audit log | **never by default** |
+| `logs/audit_log.md` | the audit log from before `logs/decisions/`: frozen, never edited | **never by default** |
+
+> **Decisions are logged only through `dev-skills/logging`:** one new file per decision in
+> `logs/decisions/`, in the same commit as its work, with no hash in it. A decision a person takes
+> without an agent goes in the pull request, not the log.
 
 ---
 
@@ -165,6 +170,8 @@ and silently carried into projects where it doesn't apply.
     would resolve against LabBrain. From a wiki, use `pixi run --manifest-path <repo>/pixi.toml labbrain`.
   - **Environments:** `pixi run -e dev test` and `pixi run -e dev lint`, plus `-e py311`, the
     oldest Python that `requires-python` promises.
+- **Nothing is committed on `main`.** Work goes on a `feat/<topic>` branch and reaches `main` by
+  pull request. Agents never push.
 - **CI** (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: pixi (`dev`,
   `py311`, the pre-push checks) and uv (3.11, 3.13), each with its lock enforced.
   - **Actions are pinned to a commit hash,** with the release in a comment. The token is read-only,

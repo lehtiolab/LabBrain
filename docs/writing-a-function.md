@@ -61,8 +61,8 @@ and prints their results. Nothing else prints.
           super().__init__("not inside the vault %s: %s" % (vault, path))
   ```
 - **A one-line docstring,** and comments only where the code isn't obvious.
-- **No new dependency without a reason,** written in the audit log. The runtime today is the
-  standard library plus `python-dotenv`.
+- **No new dependency without a reason,** given in the pull request, or by an agent through
+  `dev-skills/logging`. The runtime today is the standard library plus `python-dotenv`.
 
 ## An example
 Say `check` should flag a folder summary that has no `description`, since `index.md` shows the
@@ -118,7 +118,7 @@ package on copies of the same wiki, and expects the same output and the same fil
 alters what a command prints or writes on the dummy wiki:
 - change `test_parity.py` in the same commit;
 - add the difference to AGENT.md's list of known differences;
-- add an entry to `logs/audit_log.md` that says why.
+- say why in the pull request, or, as an agent, through `dev-skills/logging`.
 
 ## Before you push
 ```sh

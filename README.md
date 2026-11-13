@@ -94,7 +94,8 @@ dev-skills/             skills for agents working on this repo
 patterns/               trace and pattern formats, with dummy examples
 docs/                   how-to guides, usage and configuration
 env/                    .env.example; your own .env, which git ignores
-logs/audit_log.md       when and why each decision was taken
+logs/decisions/         when and why each agent decision was taken: one file each
+logs/audit_log.md       the same, from before logs/decisions/; frozen
 tests/                  pytest; reference/ holds okf_vault.sh, which the parity tests compare against
 ```
 
@@ -109,6 +110,10 @@ Read [AGENT.md](AGENT.md) first: it holds the rules for this repo, for people an
   they exist. See [docs/writing-a-skill.md](docs/writing-a-skill.md).
 - **A change to a command, option or setting** updates the docs in the same commit;
   `tests/test_docs.py` fails on a missing one.
+- **Audit log:** decisions taken with a coding agent are logged by the agent with
+  [dev-skills/logging](dev-skills/logging/SKILL.md), one file per decision in `logs/decisions/`.
+  Decisions you take yourself go in the pull request description. Read the log with
+  `sh dev-skills/logging/log.sh`. Don't edit `logs/audit_log.md`, and don't rename or delete a record.
 - **Before pushing:**
   ```sh
   pixi run -e dev test
