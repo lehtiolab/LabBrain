@@ -5,7 +5,7 @@
 **Lean. Rules, not essays.**
 
 - **A rule is one or two lines.** If it needs a paragraph to justify it, the rule stays here and
-  the justification goes in `logs/audit_log.md`.
+  the justification goes in the audit log (`dev-skills/logging`) or the pull request.
 - **Write only what the code cannot say.** Invariants, traps, decisions and costs. If reading the
   code would tell you, cut it.
 - **No history, no dates, no "decided on".** This is the current state only; history goes in the
@@ -22,11 +22,12 @@
 | `dev-skills/*/SKILL.md` | skills for working **on this repo**: `update-docs`, `logging` | when doing that job |
 | `docs/*.md` | how-to guides, usage and configuration, for people and agents: explanations, not rules | when changing what they describe |
 | `patterns/README.md` | the trace and pattern formats | before writing code that records runs |
-| `logs/audit_log.md` | when and why each decision was taken: appended, never rewritten | **never by default** |
+| `logs/decisions/` | when and why each decision from an agent session was taken: one file per decision; `sh dev-skills/logging/log.sh` prints them as the audit log | **never by default** |
+| `logs/audit_log.md` | the audit log from before `logs/decisions/`: frozen, never edited | **never by default** |
 
-> **Every session, before anything else:** `sh dev-skills/logging/pending.sh`. If it lists entries,
-> tell the user there are uncommitted decisions in the audit log and stop; on their go-ahead, follow
-> `dev-skills/logging`. Decisions are logged only through that skill.
+> **Decisions are logged only through `dev-skills/logging`:** one new file per decision in
+> `logs/decisions/`, in the same commit as its work, with no hash in it. A decision a person takes
+> without an agent goes in the pull request, not the log.
 
 ---
 

@@ -1,18 +1,26 @@
 ---
 name: logging
-description: Write a decision to LabBrain's audit log with the hash of the commit that holds its work, and fill in the hash of entries still marked uncommitted. Use when asked to log a decision, when a major decision or discovery has been made, and when the session-start check in AGENT.md lists pending entries. Commits locally; never pushes.
+description: Record a decision taken in an agent session as a new file of its own in LabBrain's logs/decisions/, committed together with the work it describes and holding no hash, and print the audit log with each record's hash looked up from git. Use when asked to log a decision, and when a major decision or discovery has been made in a session. A decision a person takes without an agent goes in the pull request instead. Commits locally; never pushes.
 ---
 
-# logging: every audit-log entry names its commit
+# logging: one file per decision, committed with its work
 
-This skill is for working on the LabBrain repo. The log is `logs/audit_log.md`; the check is
-`sh dev-skills/logging/pending.sh`.
+This skill is for working on the LabBrain repo. Each decision is a file of its own in `logs/decisions/`.
+`logs/audit_log.md` is the log from before records, frozen. `sh dev-skills/logging/log.sh` prints the whole log.
 
 ## Why
-The hash is what makes an entry checkable: the commit exists and holds what the entry says. A
-hash exists only once its commit does, and decisions are usually taken before the commit. An
-entry written first says `uncommitted`, and an `uncommitted` entry is a decision whose work may
-not be in git at all. The check brings it back each session until it names its commit.
+Several people and agents log decisions, each on their own branch. Entries appended to one file
+conflict on every merge, because every branch writes at its end, and a hash written into an entry
+needs a second commit and a later edit. So each decision is a new file, which no other branch
+writes, and it holds no hash: git knows which commit added it, and `log.sh` looks that up each time
+the log is read. The record goes in the same commit as its work, so that commit holds both. Nothing
+stored depends on a hash, so a rebase or a squash merge leaves the log right.
+
+## What goes in it
+- **Decisions and discoveries from an agent session** that shape the code: taken by the agent, or
+  agreed between the agent and the person it works with.
+- **Not a decision a person takes on their own.** That goes in the pull request description.
+- **Not routine work:** docs catching up with the code, a fixed typo, a test for what already works.
 
 ## Rules
 - **Never push.** Not after a commit, not to finish the job, not when asked to log. Pushing is the
@@ -20,58 +28,66 @@ not be in git at all. The check brings it back each session until it names its c
 - **Never commit on `main`.** Work reaches `main` only by pull request from a `feat/` branch. If
   `git branch --show-current` says `main`, stop and ask which `feat/<topic>` branch to use, then
   `git switch -c feat/<topic>`; uncommitted work comes with it.
+- **Never edit `logs/audit_log.md`.** It is the history from before records, kept as it was.
+- **One decision, one record,** at `logs/decisions/YYYY-MM-DD-<topic>.md`: the date, then a few lowercase
+  words joined by hyphens that name the decision. Never a running number: two branches would both
+  take the next one. The name must be new on every branch: `git log --all --oneline -- <path>`
+  prints nothing.
+- **No hash in a record.** `log.sh` looks it up.
+- **The record goes in the same commit as its work.** A decision that changed no file is a commit
+  holding only its record. Never commit a record without its work.
 - **Commit only what the decision touched.** Stage named paths, `git add -- <path>…`; never
   `git add -A`, `git add .` or `git commit -a`. Unrelated changes stay unstaged. If one file holds
   both, ask before staging it.
-- **Never amend, rebase, squash or reset.** A rewritten commit orphans every hash already logged.
-- **Never `--no-verify`.** A failing hook stops the commit; report it, and the entry stays
-  `uncommitted`.
-- **The hash is the work's commit,** read with `git rev-parse --short HEAD` straight after it. The
-  entry then goes in a commit of its own, so the log is always one commit behind the work it
-  names.
-- **A decision that changed no tracked file** takes the hash of `HEAD` and says so:
-  `## YYYY-MM-DD — <hash> (no tracked file changed) — <title>`.
-- **Filling in a hash is the one edit allowed to an existing entry.** Nothing else in it changes.
+- **Never `--no-verify`.** A failing hook stops the commit; report it, and the record stays
+  uncommitted.
+- **A committed record is not rewritten.** A typo or a wrong fact is fixed in place. A decision
+  that changes, or is reversed, is a new record whose `supersedes` names the old record's file.
+- **Never rename, move or delete a record.** Its hash is the commit that added it at that path; a
+  renamed record would take the hash of the rename.
+- **Never commit the printed log.** It is made each time it is read, so it never conflicts.
 - AGENT.md's rules on commits still hold: read `git status` first; no data, secrets or generated
   files.
 
-## Entry format
-The header is `## YYYY-MM-DD — <hash> — <title>`, with `uncommitted` in place of the hash until
-the commit exists. The body follows the template at the top of the log. Entries go at the end,
-newest last.
+## Record format
+```
+---
+date: YYYY-MM-DD
+title: <title>
+decided_by: [human:<handle>, <tool>/<model>]
+supersedes: <YYYY-MM-DD-topic>.md
+---
 
-## At session start
-AGENT.md has you run `sh dev-skills/logging/pending.sh` before anything else.
-- **Exit 0:** nothing pending; say nothing.
-- **Exit 1:** tell the user *"There are uncommitted decisions in the audit log"*, list the lines
-  it printed, and stop. Do not resolve them unasked.
-- **Exit 2:** it could not check (no log, not a repo); say so.
-
-On the user's go-ahead, resolve them (below).
+**Discovered / Decided:** what.
+**Why:** the reasoning, including what was rejected.
+**Cost:** what it broke, changed or left open.
+```
+- **`decided_by`** names who took the decision, as actors: the person as `human:<handle>` (their `LABBRAIN_CONTRIBUTOR`, if set; otherwise ask),
+  and you as `<tool>/<model>`, e.g. `claude-code/claude-opus-5-5`. A decision you took alone names
+  only you. **Never an email address.**
+- **`supersedes`** only when the record replaces an earlier one; otherwise leave the line out.
+- **Put the title in double quotes** if it holds a colon.
 
 ## Logging a decision
 When asked to log a decision, being asked is the go-ahead to commit it.
 1. `git status` and `git diff`: list the paths that belong to the decision.
-2. Commit them: `git add -- <paths>`, then `git commit -m "<title>"`.
-3. `git rev-parse --short HEAD` is the hash.
-4. Append the entry to `logs/audit_log.md` with that hash.
-5. Commit the log alone: `git add -- logs/audit_log.md`, `git commit -m "audit log: <title>"`.
-6. Run the check; it exits 0.
-7. Report both hashes and anything left unstaged. Do not push.
+2. Name the record, and check the name is new: `git log --all --oneline -- logs/decisions/<name>.md`
+   prints nothing.
+3. Write the record.
+4. Commit work and record together: `git add -- <paths> logs/decisions/<name>.md`, then
+   `git commit -m "<title>"`.
+5. Run `sh dev-skills/logging/log.sh --uncommitted`: the record is not listed.
+6. Report the hash (`git log -1 --format=%h`) and anything left unstaged. Do not push.
 
-If the work can't be committed yet (the user says not yet, the tests fail, a hook refuses),
-append the entry as `uncommitted` and stop; the next session's check brings it back.
+If the work can't be committed yet (the user says not yet, the tests fail, a hook refuses), write
+the record and stop. It stays uncommitted, `git status` shows it, and it goes in with the work when
+that is committed. If the work was committed before it was logged, commit the record on its own and
+name the work's commit in its body; that hash is plain text, and nothing checks it.
 
-## Resolving `uncommitted` entries
-For each line the check printed:
-1. Read the entry and work out which files it describes.
-2. **Already committed?** `git log --oneline -- <paths>`, then `git show --stat <hash>` on each
-   candidate. One commit that holds the work is the hash.
-3. **Still in the working tree?** Commit it as in *Logging a decision*, steps 1–3.
-4. **Neither, or several commits and no clear one?** Don't guess a hash. Tell the user what you
-   found and leave the entry as it is.
-5. Replace `uncommitted` in the header with the hash. A `no commit <hash> here` line (a typo, or
-   history that was rewritten) is fixed the same way, once the right commit is known.
+## Reading the log
+`sh dev-skills/logging/log.sh` prints `logs/audit_log.md`, then every record oldest first under a `## YYYY-MM-DD — <hash> — <title>`
+header. The hash is the commit that added the record, or `uncommitted`. It needs the full history:
+a shallow clone shows older records with the wrong hash.
 
-Then commit the log once for all of them, `audit log: hashes for <n> entries`, run the check,
-and report each entry with its hash, plus any left unresolved. Do not push.
+`sh dev-skills/logging/log.sh --uncommitted` lists the records not yet committed, or edited since: exit 0 none, 1 some, 2
+it could not check.
