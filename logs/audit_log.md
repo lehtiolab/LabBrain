@@ -312,3 +312,17 @@ never deleted a file that had a drift record.
 **Cost:** a key left empty before the fix stays until the next `drift-stamp` refills it, because
 `links` rewrites a summary only when its records change. The personal vault's one case was removed
 by hand.
+
+---
+
+## 2026-11-12 — uncommitted — decisions are logged by `dev-skills/logging`, with their commit's hash
+
+**Decided:** `dev-skills/logging` (tracked) writes audit-log entries and fills in their hashes.
+The work is committed first, locally, staging only the paths the decision touched; the entry
+follows in a commit of its own, on a `feat/` branch, never on `main`. `dev-skills/logging/pending.sh` lists entries whose hash is
+`uncommitted`, missing, or no commit in this repo. AGENT.md runs it at the start of every session,
+and the agent raises what it lists with the user before resolving anything. Nothing is pushed.
+
+**Why:** a decision is taken before its commit exists, so the hash was left for later and depended on remembering. Asked for.
+
+**Cost:** a logged decision is two commits, the work and then the entry. `logging` joins `update-docs` in `dev-skills/`, under the same tests.
