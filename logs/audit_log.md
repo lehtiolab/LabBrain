@@ -312,3 +312,63 @@ never deleted a file that had a drift record.
 **Cost:** a key left empty before the fix stays until the next `drift-stamp` refills it, because
 `links` rewrites a summary only when its records change. The personal vault's one case was removed
 by hand.
+
+## 2026-11-24 — 67de892 — PyYAML is a runtime dependency
+
+**Decided:** PyYAML joins the runtime, beside `python-dotenv`. It reads and writes whole YAML data
+files, and reads with `safe_load` only. Frontmatter stays with the hand-written parser.
+
+**Why:** the user asked for pictures of any JSON or YAML file, and expects YAML to be needed for
+other jobs later. The rule against a YAML library was about rewriting frontmatter, where key order
+and quoting must survive; a whole data file read once has no such need. PyYAML was already in both
+locks, through pre-commit.
+
+**Rejected:**
+- **JSON only, or YAML only in the subset the frontmatter parser reads:** neither reads any YAML file.
+
+**Cost:** a compiled dependency, with wheels for every platform pixi lists.
+
+## 2026-11-24 — d9c41ef — _maps/ at the wiki root is labbrain's own
+
+**Discovered:** a git-ignored folder isn't invisible to labbrain. `listdir` skips only dot-names,
+so pictures in an ignored `maps/` would still become summary sources, need headers and show up in
+listings.
+
+**Decided:** `listdir` skips `_maps/` at the wiki root, so no command sees it. The picture commands
+write `_maps/.gitignore` with `*`, so the folder ignores itself, and a wiki's own `.gitignore` is
+never touched. `test_the_maps_folder_is_invisible` holds this against the reference script.
+
+**Why:** the user wanted the pictures inside the wiki and ignored by git, to try them out.
+
+**Rejected:**
+- **`maps/`:** a lab's own `maps/` folder (genetic maps, site maps) would silently drop out of its
+  summaries.
+- **A dot-folder:** Obsidian hides it, so the canvas couldn't be opened.
+- **Making `walk` honour `.gitignore`:** the wiki's root ignores `Shelf/`-style sub-repos that must
+  still be walked, and it would change every command.
+
+**Cost:** a wiki that has its own `_maps/` at the root loses it from summaries and listings.
+
+## 2026-11-24 — 05aacac — Pictures: one tree layout, two views, summaries as the tree
+
+**Decided:**
+- `labbrain canvas` draws any JSON or YAML file and `labbrain hierarchy` draws the folder
+  summaries, both into `_maps/`. Both are experimental.
+- **One layout, two views:** an Obsidian canvas or a self-contained web page, chosen by `--view`
+  or the person's `LABBRAIN_VIEW`.
+- **Boxes are text, with the title linking to the file,** not canvas file nodes. Run on a test
+  file, a file node showed the file but dropped the box's title and description.
+- **The tree is worked out from the folders on disk,** with `expected()`, not from the `parent` and
+  `children` recorded in frontmatter, which can be out of date.
+- **A link to a note becomes a link to the summary that covers it** (`covers()`). Links to the
+  summary's own notes, its parent and its children are left out, since the tree shows them.
+- **The web page draws arrows above the boxes,** so an arrow crossing a box can't pass for a link
+  from it.
+
+**Why:** the user wanted to see the subjects and their relationships before paying a model to read
+the summaries. Everything here can be worked out from paths, frontmatter and links, so it is code.
+
+**Cost:**
+- On the user's wiki (85 summaries, 246 links between them), the tree reads well, but the link
+  arrows tangle: they cross whole columns of boxes. How to show links is open.
+- Subjects inside the summaries, which need a model, are not started.
