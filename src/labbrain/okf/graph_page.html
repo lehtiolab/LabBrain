@@ -142,7 +142,7 @@ const group = n => n.type === "Folder Summary" ? "s1" : n.type === "Note" ? "s2"
   : CONCEPTS.has(n.type) ? "s3" : "other";
 const colour = n => `var(--${group(n)})`;
 const href = id => D.fileUrl ? D.fileUrl.replace("{path}", encodeURI(id)) : D.base + encodeURI(id);
-const short = (s, k = 32) => s.length > k ? s.slice(0, k - 1) + "…" : s;
+const short = (s, k = 28) => s.length > k ? s.slice(0, k - 1) + "…" : s;
 
 // Search in the page: the headers only, as step 1 of `labbrain search`.
 function meanings(query) {
@@ -222,7 +222,7 @@ function place(v) {
     let sin = 0, cos = 0;
     ring.forEach((id, i) => { sin += Math.sin(up(id) - i * step); cos += Math.cos(up(id) - i * step); });
     const offset = sin || cos ? Math.atan2(sin, cos) : 0;
-    radius = Math.max(radius + 170, ring.length * 30 / (2 * Math.PI));
+    radius = Math.max(radius + 240, ring.length * 30 / (2 * Math.PI));  // a label fits between rings
     ring.forEach((id, i) => {
       const a = offset + i * step;
       pos.set(id, {x: radius * Math.sin(a), y: -radius * Math.cos(a), a});
@@ -272,7 +272,17 @@ function draw() {
     const r = virtual ? 11 : n.type === "Folder Summary" ? 9 : 6;
     g.appendChild(el("svg:circle", {class: "dot", r, fill: virtual ? "var(--ink)" : colour(n)}));
     if (label || d <= 1 || n.type === "Folder Summary" || hits.includes(id)) {
-      g.appendChild(el("svg:text", {x: r + 4, y: 4}, short(n.title)));
+      // outward along the node's radius, so that neighbours on a ring never overlap; turned over
+      // on the left half, so that no label reads upside down
+      const t = g.appendChild(el("svg:text", {x: r + 4, y: 4}, short(n.title)));
+      const deg = ((pos.get(id).a * 180 / Math.PI) % 360 + 360) % 360;
+      if (d > 0 && deg > 180) {
+        t.setAttribute("transform", `rotate(${deg + 90})`);
+        t.setAttribute("x", -(r + 4));
+        t.setAttribute("text-anchor", "end");
+      } else if (d > 0) {
+        t.setAttribute("transform", `rotate(${deg - 90})`);
+      }
     }
   }
   draw.lines = lines;
@@ -293,8 +303,9 @@ function move() {
 }
 function fit() {
   const box = $("svg").getBoundingClientRect(), xs = [...pos.values()];
-  const w = Math.max(...xs.map(p => p.x)) - Math.min(...xs.map(p => p.x)) + 300;
-  const h = Math.max(...xs.map(p => p.y)) - Math.min(...xs.map(p => p.y)) + 120;
+  const label = 200;  // room for the labels on the outer ring
+  const w = Math.max(...xs.map(p => p.x)) - Math.min(...xs.map(p => p.x)) + 2 * label;
+  const h = Math.max(...xs.map(p => p.y)) - Math.min(...xs.map(p => p.y)) + 2 * label;
   zoom.k = Math.min(1.2, box.width / w, box.height / h);
   zoom.x = box.width / 2 - zoom.k * (Math.min(...xs.map(p => p.x)) + Math.max(...xs.map(p => p.x))) / 2;
   zoom.y = box.height / 2 - zoom.k * (Math.min(...xs.map(p => p.y)) + Math.max(...xs.map(p => p.y))) / 2;
