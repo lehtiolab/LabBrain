@@ -66,9 +66,10 @@ skills and patterns come back here by pull request; raw traces never do.
 - **Provenance is git blob hashes** (`git hash-object`), so `git cat-file -p` recovers the exact
   version a summary was built from.
 - **The frontmatter parser is hand-written,** so key order, flow mappings and quoting survive a
-  rewrite. No YAML library.
-- **The runtime is the standard library plus `python-dotenv`,** which reads `env/.env`. `git` is
-  the one system dependency.
+  rewrite. PyYAML never touches frontmatter: it reads and writes whole data files only.
+- **PyYAML reads with `safe_load`, never `load`:** a file's content is untrusted input.
+- **The runtime is the standard library plus `python-dotenv`,** which reads `env/.env`, **and
+  PyYAML.** `git` is the one system dependency.
 - **`labbrain.okf` returns data and `cli.py` prints it.** No `print` below the CLI.
 - **No state outlives a call.** A cache is made by the function that needs it and passed down
   (`history(vault, rel, cache)`). The night run is one process running many jobs, and a module-level

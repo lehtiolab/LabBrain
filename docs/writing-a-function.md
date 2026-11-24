@@ -47,8 +47,9 @@ and prints their results. Nothing else prints.
   `add_frontmatter` adds its header. Any other metadata goes into a note's header only when the
   header says `annotate: true`, with an entry in `annotated`, and never replaces `generated`. Other
   output goes to summaries, `index.md` blocks or logs.
-- **Frontmatter goes through `frontmatter.py`.** There is no YAML library on purpose: one would
-  reorder keys and change quoting.
+- **Frontmatter goes through `frontmatter.py`.** PyYAML is never used on frontmatter, on purpose:
+  it would reorder keys and change quoting. It reads and writes whole YAML data files only, and
+  reads with `yaml.safe_load`, because a file's content is untrusted.
 - **Git goes through `git.py`.**
 - **An error is an exception that takes data.** Arguments in, attributes stored, and the message
   formatted in `__init__`:
@@ -62,7 +63,7 @@ and prints their results. Nothing else prints.
   ```
 - **A one-line docstring,** and comments only where the code isn't obvious.
 - **No new dependency without a reason,** written in the audit log. The runtime today is the
-  standard library plus `python-dotenv`.
+  standard library, `python-dotenv` and PyYAML.
 
 ## An example
 Say `check` should flag a folder summary that has no `description`, since `index.md` shows the
