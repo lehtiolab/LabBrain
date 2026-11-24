@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Tools and skills for agents that read and maintain an OKF lab wiki"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["python-dotenv>=1.0"]
+dependencies = ["python-dotenv>=1.0", "pyyaml>=6.0"]
 
 [project.optional-dependencies]
 dev = [

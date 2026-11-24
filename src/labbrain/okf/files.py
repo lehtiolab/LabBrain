@@ -4,6 +4,14 @@ import os
 
 RESERVED = ("index.md", "log.md")
 
+# Where labbrain draws its pictures: at the root of the wiki, and of each git repo in it, since
+# --vault can name an inner bundle. Git ignores it, and labbrain never looks inside it, so a
+# picture can't make a summary stale or show up in a listing.
+MAPS = "_maps"
+
+# The wiki's own config, at its root: committed, but no summary covers it and no listing shows it.
+CONFIG, TOPICS = "labbrain.yaml", "topics.yaml"
+
 
 # Files a summary is built from (hashed into `sources`); everything else is an attachment.
 TEXT_EXT = {
@@ -43,7 +51,11 @@ def listdir(vault, d):
         return [], []
     dirs, files = [], []
     for e in entries:
-        if e.startswith("."):
+        if (
+            e.startswith(".")
+            or (e == MAPS and is_repo_root(vault, d))
+            or (not d and e in (CONFIG, TOPICS))
+        ):
             continue
         (dirs if os.path.isdir(os.path.join(vault, d, e)) else files).append(e)
     return dirs, files

@@ -19,6 +19,7 @@ There is one module per subject, in `src/labbrain/okf/`:
 
 | module | holds |
 |---|---|
+| `config.py` | the wiki's own config: `labbrain.yaml` and `topics.yaml` |
 | `files.py` | reading, writing and walking the wiki's files; which files count as text |
 | `frontmatter.py` | the hand-written frontmatter parser and writer |
 | `git.py` | every call to git: blob hashes, history, the repos inside the wiki |
@@ -27,6 +28,11 @@ There is one module per subject, in `src/labbrain/okf/`:
 | `links.py` | wikilinks, broken links, and carrying hashes past link-only edits |
 | `index.py` | the generated `index.md` listings |
 | `drift.py` | hot files and drift checks |
+| `canvas.py` | pictures of JSON and YAML data, in `_maps/` |
+| `hierarchy.py` | the folder summaries as one tree, with the links between them |
+| `graph.py` | the wiki's graph: nodes, edges, and the cache of what each file holds |
+| `search.py` | code-only search over the graph: headers, full text, links |
+| `page.py` | the graph page; its HTML and JavaScript are in `graph_page.html` beside it |
 | `check.py` | `check`: every conformance test at once |
 
 `src/labbrain/cli.py` is the command line. It reads the settings, finds the wiki, calls functions
@@ -47,8 +53,9 @@ and prints their results. Nothing else prints.
   `add_frontmatter` adds its header. Any other metadata goes into a note's header only when the
   header says `annotate: true`, with an entry in `annotated`, and never replaces `generated`. Other
   output goes to summaries, `index.md` blocks or logs.
-- **Frontmatter goes through `frontmatter.py`.** There is no YAML library on purpose: one would
-  reorder keys and change quoting.
+- **Frontmatter goes through `frontmatter.py`.** PyYAML is never used on frontmatter, on purpose:
+  it would reorder keys and change quoting. It reads and writes whole YAML data files only, and
+  reads with `yaml.safe_load`, because a file's content is untrusted.
 - **Git goes through `git.py`.**
 - **An error is an exception that takes data.** Arguments in, attributes stored, and the message
   formatted in `__init__`:
@@ -62,7 +69,7 @@ and prints their results. Nothing else prints.
   ```
 - **A one-line docstring,** and comments only where the code isn't obvious.
 - **No new dependency without a reason,** given in the pull request, or by an agent through
-  `dev-skills/logging`. The runtime today is the standard library plus `python-dotenv`.
+  `dev-skills/logging`. The runtime today is the standard library, `python-dotenv` and PyYAML.
 
 ## An example
 Say `check` should flag a folder summary that has no `description`, since `index.md` shows the

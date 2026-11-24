@@ -76,6 +76,9 @@ sources:                         # every file it was built from, with its git bl
 - **You write `title`, `description` and the body. Code writes the rest.** Run
   `labbrain stamp --by <actor> <summary>`: it lists the sources, hashes them, and sets `generated`,
   `parent` and `children`. Never fill these in by hand.
+- **`topics`,** optional, lists what the summary is about, from the wiki's vocabulary in
+  `topics.yaml`: `topics: [proteomics, normalization]`. A topic that isn't in the vocabulary is a
+  proposal for a person, not a value to write. The graph and search read it.
 - **`sources`** are every text file in the folder, plus the files in subfolders that have no summary
   of their own. They never include the summary itself, `index.md` or `log.md`.
 - **Why a hash:** it is the git blob id. `git cat-file -p <hash>`, run in the owning repo, prints the
@@ -86,7 +89,7 @@ sources:                         # every file it was built from, with its git bl
 - **Human review** is OKF's `verified: { by: human:<name>, at: <time> }`. A `verified.at` older than
   `generated.at` means the review predates the current text.
 
-## index.md and log.md (reserved names)
+## index.md, log.md, _maps/ and the wiki's config (reserved names)
 - **`index.md`** exists in every folder that has notes. It lists the folder's summary, notes,
   subfolders and other files, each with a one-line description.
   - `labbrain index` generates the listing: never edit it by hand.
@@ -98,6 +101,12 @@ sources:                         # every file it was built from, with its git bl
 - **Frontmatter in `index.md`:** only a bundle root's `index.md` has any, and it holds only
   `okf_version: "0.2"`.
 - **`log.md`** at each bundle root records changes, newest first, under `## YYYY-MM-DD` headings.
+- **`_maps/`** at the root of the wiki, or of a git repo in it, holds the pictures labbrain draws. Git ignores it, labbrain never
+  reads it, and nothing in it is part of the wiki: no summary covers it and no listing shows it.
+  Never write there by hand.
+- **`labbrain.yaml` and `topics.yaml`** at the wiki root are the wiki's own config: rules and the
+  topic vocabulary, the same for everyone. They are committed and changed by review. No summary
+  covers them and no listing shows them. An agent proposes changes to them; it never makes them.
 
 ## Drift verification
 A summary can be current by hash and still say something its notes no longer say. The `drift`
@@ -131,6 +140,10 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain links [FILE...]` | turns wikilinks into relative links and carries hashes forward | notes' link syntax, summaries' hashes |
 | `labbrain hot [--days D] [--min N] [--recheck R]` | lists often-changed files, the files that cite them, and which are due a drift check | nothing |
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check | summaries' `drift_verification` |
+| `labbrain canvas FILE...` | draws JSON or YAML files as trees of boxes | pictures in `_maps/` only |
+| `labbrain graph` | the wiki's graph, a cache rebuilt from changed files | `_maps/` only |
+| `labbrain search WORD... [--depth N] [--text]` | files by header, then text, then links; code only | `_maps/` only |
+| `labbrain hierarchy [FOLDER...]` | the summaries, of the wiki or of each FOLDER, as one tree with their links, and its picture | `_maps/` only |
 
 ## Running labbrain
 Run `labbrain <command>` from the wiki root, or from anywhere with `--vault <wiki root>`. File

@@ -40,12 +40,16 @@ jobs will run unattended at night.
 | part | role | state |
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
-| `labbrain.cli` | `labbrain <command>`, 8 commands; reads the settings | works |
-| `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`) | works |
+| `labbrain.okf.search` | code-only search over the graph: headers, then full text, then links | experimental: being tried out |
+| `labbrain.okf.graph`, `.page` | the wiki's graph in `_maps/graph.json`: a cache, rebuilt from changed files only, never committed; and the page to explore it, from `graph_page.html` | experimental: being tried out |
+| `labbrain.okf.canvas`, `.hierarchy` | pictures of JSON and YAML data in `_maps/` (an Obsidian canvas or a web page), and the summaries as one tree to draw | experimental: being tried out |
+| `labbrain.cli` | `labbrain <command>`, 12 commands; reads the settings | works |
+| `labbrain.okf.config` | the wiki's own config: `labbrain.yaml` and `topics.yaml` at its root | works |
+| `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`, `LABBRAIN_VIEW`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
-| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift` | first versions |
+| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift`; `canvas` | first versions; `canvas` experimental |
 | `patterns/` | trace and pattern formats, dummy examples | draft; no code writes them yet |
-| *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, search code, an MCP server | not started |
+| *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, an MCP server | not started |
 | *(separate feature)* | task boards (Kanban): an Obsidian plugin's format, maybe a front-end feature later | not started; no board handling in the core |
 
 **One entry point:** `labbrain`, the same as `python -m labbrain`.
@@ -71,9 +75,10 @@ skills and patterns come back here by pull request; raw traces never do.
 - **Provenance is git blob hashes** (`git hash-object`), so `git cat-file -p` recovers the exact
   version a summary was built from.
 - **The frontmatter parser is hand-written,** so key order, flow mappings and quoting survive a
-  rewrite. No YAML library.
-- **The runtime is the standard library plus `python-dotenv`,** which reads `env/.env`. `git` is
-  the one system dependency.
+  rewrite. PyYAML never touches frontmatter: it reads and writes whole data files only.
+- **PyYAML reads with `safe_load`, never `load`:** a file's content is untrusted input.
+- **The runtime is the standard library plus `python-dotenv`,** which reads `env/.env`, **and
+  PyYAML.** `git` is the one system dependency.
 - **`labbrain.okf` returns data and `cli.py` prints it.** No `print` below the CLI.
 - **No state outlives a call.** A cache is made by the function that needs it and passed down
   (`history(vault, rel, cache)`). The night run is one process running many jobs, and a module-level
@@ -94,6 +99,9 @@ skills and patterns come back here by pull request; raw traces never do.
     - a file argument outside the vault is refused, before anything is written;
     - `links` removes `drift_verification` when it drops the last record, instead of leaving the
       key empty;
+    - nothing looks inside `_maps/` at the root of the wiki or of a repo in it, where labbrain
+      draws its pictures, nor at `labbrain.yaml` and `topics.yaml` at the wiki root;
+    - a bad wiki config stops every command;
     - argparse handles usage and help.
 
 ---
@@ -114,8 +122,10 @@ from arguments and the environment: never hardcode URLs, keys, paths or people. 
 **A function is a capsule: everything it needs is in its arguments.**
 - Configuration is read once, at the edge (`cli.py`), and passed down. Nothing below it reads
   `os.environ` or `env/.env`.
-- **Settings are about the person, never the wiki.** A wiki-wide rule (thresholds, note types) is
-  not a setting: it would mean different things depending on who ran the job.
+- **Two levels of configuration.** A person's settings (`env/.env`) are about the person. A rule for
+  the whole wiki goes in `labbrain.yaml` or `topics.yaml` at the wiki root, committed and the same
+  for everyone; no setting overrides it, or it would mean different things depending on who ran the
+  job. Both are read once, in `cli.py`, and passed down field by field.
 - **A long signature beats a config object.** Nine named arguments are honest; a bag hides which
   fields are used.
 - **The tell is untestability.** A function that reads its own module can only be tested by patching.

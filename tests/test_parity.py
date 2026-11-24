@@ -98,6 +98,25 @@ def test_reference_sees_the_fixture(pair):
     assert "Garden/Tomatoes.md" in out and "never checked: DUE" in out
 
 
+def test_labbrains_own_files_are_invisible(pair):
+    """A deliberate difference: labbrain never looks inside _maps/ at the wiki root, or at the
+    root of a repo in it (Shelf/, drawn with --vault Shelf), where it draws its pictures, nor at
+    the wiki's config at its root. The reference script, which has none of them, sees the same
+    wiki."""
+    ref, pkg = pair
+    (pkg / "labbrain.yaml").write_text("graph: {hidden: [Session Summary]}\n")
+    (pkg / "topics.yaml").write_text("garden: {synonyms: [beds]}\n")
+    maps = ("_maps", os.path.join("Shelf", "_maps"))
+    for m in maps:
+        (pkg / m / "Garden").mkdir(parents=True)
+        for name in ("hierarchy.yaml", "hierarchy.canvas", "Garden/plan.html", "Stray.md"):
+            (pkg / m / name).write_text("[[Beans]] and [a broken link](Nope.md)\n")
+    for args in (("check",), ("stale",), ("index",), ("links",), ("hot",)):
+        assert run(PACKAGE, pkg, args) == run(REF, ref, args), args
+    own = (*maps, "labbrain.yaml", "topics.yaml")
+    assert {k: v for k, v in snapshot(pkg).items() if not k.startswith(own)} == snapshot(ref)
+
+
 def test_links_removes_an_emptied_drift_key(pair):
     """A deliberate difference: when links drops a summary's last drift record, because its file
     is gone, okf_vault.sh leaves `drift_verification:` with nothing under it; the package removes

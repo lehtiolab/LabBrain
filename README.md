@@ -65,6 +65,10 @@ the wiki, run `pixi run --manifest-path <LabBrain>/pixi.toml labbrain <command>`
 | `labbrain links [FILE...]` | turns `[[wikilinks]]` into relative markdown links |
 | `labbrain hot` | often-changed files, the files that cite them, and which are due a drift check |
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check |
+| `labbrain canvas FILE...` | draws a JSON or YAML file as a tree of boxes, as an Obsidian canvas or a web page, in `_maps/` |
+| `labbrain graph` | brings the wiki's graph up to date in `_maps/graph.json`, and draws a page to explore it in any browser |
+| `labbrain search WORD...` | finds files by their headers, then their text, then the links around them, with code only |
+| `labbrain hierarchy [FOLDER...]` | writes the folder summaries, of the whole wiki or of each FOLDER, as one tree with the links between them, to `_maps/`, and draws it |
 
 ## Skills
 Instructions for an agent working on a wiki, in the `SKILL.md` format. Load the ones a job needs.
@@ -76,6 +80,7 @@ Instructions for an agent working on a wiki, in the `SKILL.md` format. Load the 
 | [summary-writing](skills/summary-writing/SKILL.md) | writing and rebuilding a folder summary faithfully |
 | [index](skills/index/SKILL.md) | bringing headers, summaries, listings and the map up to date |
 | [drift](skills/drift/SKILL.md) | checking that summaries still say what their notes say |
+| [canvas](skills/canvas/SKILL.md) | drawing the summaries as one tree, or any JSON or YAML file; experimental |
 
 The skills here are seeds. Each wiki keeps and evolves its own copies, and what it learns from its
 runs goes in its `patterns/` (see [patterns/README.md](patterns/README.md)). A skill or pattern that

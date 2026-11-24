@@ -48,7 +48,7 @@ that doesn't exist, it prints `no such folder: DIR` and exits with 2.
 the wiki without `--vault`.
 
 ## File arguments
-`stamp`, `links` and `drift-stamp` take file paths.
+`stamp`, `links`, `drift-stamp` and `canvas` take file paths, and `hierarchy` takes folders.
 - **They are relative to where you run the command,** like any shell command, not to the wiki's
   root. From the root you write `Garden/Garden_summary.md`; from inside `Garden/`, `Garden_summary.md`.
   Absolute paths work too.
@@ -69,8 +69,8 @@ actor must name the model that actually did the work. `frontmatter` falls back t
 | status | means |
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
-| 1 | `check` found problems, `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
-| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, or a bad setting. Nothing was written |
+| 1 | `check` found problems, `stale` found stale summaries, `drift-stamp` was named a file that isn't a summary, or `search` found nothing |
+| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, a `hierarchy` folder that isn't one, a bad setting, or a bad wiki config. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
 
@@ -85,6 +85,10 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`links`](#labbrain-links) | the notes' link syntax, and the hashes recorded in summaries |
 | [`hot`](#labbrain-hot) | nothing |
 | [`drift-stamp`](#labbrain-drift-stamp) | the summaries' `drift_verification` |
+| [`canvas`](#labbrain-canvas) | pictures in `_maps/`, which git ignores |
+| [`hierarchy`](#labbrain-hierarchy) | `_maps/hierarchy.yaml` and its picture |
+| [`graph`](#labbrain-graph) | `_maps/graph.json`, the wiki's graph |
+| [`search`](#labbrain-search) | the graph, and what it found in `_maps/search/` |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -142,8 +146,9 @@ It ends with `N stale summary(ies).` and exits with 1 if N isn't 0.
 
 **What a summary covers:** every text file in its folder (`.md`, `.canvas`, `.sh`, `.nix`, `.lock`,
 `.txt`, `.py`, `.json`, `.yaml`, `.yml`, `.toml`), and those in subfolders without a summary of their
-own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, and anything in
-another git repo. Images and data files are attachments, not sources.
+own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, anything in
+another git repo, `_maps/` at the root of the wiki or of any git repo in it, where labbrain draws
+its pictures, and the wiki's own config, `labbrain.yaml` and `topics.yaml` at its root. Images and data files are attachments, not sources.
 
 The hash is taken of the file on disk, so uncommitted edits count.
 
@@ -407,6 +412,241 @@ $ labbrain drift-stamp --by claude-code/claude-opus-5-5 Garden/Tomatoes.md
 drift-stamped Garden/Garden_summary.md
 $ labbrain drift-stamp --by claude-code/claude-opus-5-5 Garden/Tomatoes.md
 nothing due for Garden/Tomatoes.md
+```
+
+### labbrain canvas
+```
+labbrain canvas FILE... [--view canvas|html] [--vault DIR]
+```
+Draws each `.json`, `.yaml` or `.yml` FILE as a tree of boxes, so you can see how the data nests.
+- **The view** is `--view`, else `LABBRAIN_VIEW` (see [Configuration](configuration.md)), else
+  `canvas`:
+  - `canvas`: an Obsidian canvas ([JSON Canvas](https://jsoncanvas.org)), which Obsidian opens;
+  - `html`: one web page, with nothing loaded from the internet.
+- **The picture goes in `_maps/` at the wiki root,** at the file's own path with the view's
+  extension: `Garden/plan.yaml` becomes `_maps/Garden/plan.canvas`. With `--vault` naming an inner
+  bundle, the root is that bundle's. A file already in `_maps/` gets
+  its picture beside it. Drawing a file again replaces its picture.
+- **`_maps/` is never part of the wiki.** labbrain writes `_maps/.gitignore`, so git ignores the
+  folder, and no other command looks inside it: no summary covers it, and no listing shows it. That
+  holds for a `_maps/` at the root of any git repo in the wiki too, such as one drawn with `--vault`.
+
+**What goes in a box:**
+- A mapping or a list is a box, titled by its key. A list item has no title.
+- A value that is neither, such as a number or a short text, is a line in its parent's box:
+  `budget: 120`, or `- basil` for a list item. Each nested mapping or list is a box of its own, with
+  an arrow from its parent.
+- **Some keys shape the picture** instead of showing as `key: value`:
+
+  | key | does |
+  |---|---|
+  | `title` | titles the box |
+  | `description` | a line in the box, without its key |
+  | `path` | when it names a file in the wiki, the title links to that file |
+  | `children` | a list whose items are boxes under this one, without a `children` box between |
+  | `links` | wiki files this box links to: one line at the end of the box, `→ Garden — Summary · Beans`, each name a link to its file. A name is the file's `title`, else its file name. There are no arrows for links: on a real wiki they tangled |
+
+A `path` or a link that isn't a file in the wiki is shown as text. In a canvas, click a title or a
+link's name to open its file. In a page, they are links to the files.
+
+YAML is read with PyYAML's `safe_load`, so a file can't make labbrain run anything. A file that
+isn't JSON or YAML, doesn't exist, or doesn't parse is refused with `can't draw <file>: <why>`. Every
+FILE is read before any picture is written, so one bad file means nothing is written, and the exit
+status is 2.
+
+```
+$ labbrain canvas Garden/plan.yaml
+drew _maps/Garden/plan.canvas
+$ labbrain canvas --view html Garden/plan.yaml Garden/Tomatoes.md
+can't draw Garden/Tomatoes.md: not a .json, .yaml or .yml file
+```
+
+### labbrain hierarchy
+```
+labbrain hierarchy [FOLDER...] [--view canvas|html] [--vault DIR]
+```
+Writes the folder summaries in each FOLDER as one tree, then draws it beside, as
+[`canvas`](#labbrain-canvas) does. With no FOLDER, it draws the whole wiki.
+
+| FOLDER | writes |
+|---|---|
+| none | `_maps/hierarchy.yaml`, and `_maps/hierarchy.canvas` or `.html` |
+| `Garden` | `_maps/Garden/hierarchy.yaml`, and `_maps/Garden/hierarchy.canvas` or `.html` |
+
+Each is rewritten on every run. A FOLDER is relative to where you run the command, like a file
+argument: from inside `Garden/`, `labbrain hierarchy .` draws `Garden`. A FOLDER that doesn't exist
+is refused with `not a folder: <folder>`, and nothing is written. It reads only the summaries'
+frontmatter and links: no model, and no note is read.
+- **Each summary sits under the summary of the folder above it,** as `stamp` would record its
+  `parent`.
+- **The top of the tree** is FOLDER's own summary, when every other summary in FOLDER sits under
+  it. Otherwise it is the folder itself, titled with its name, with its `index.md` as its `path`.
+  For the whole wiki that is usually the wiki, because the top summary of each git repo in it has
+  no parent.
+- **Each summary has** its `title`, its `path`, its `description` if it has one, its `links` and
+  its `children`.
+- **`links` are what its text links to outside its own part of the tree:**
+  - a link to a note becomes a link to the summary that covers the note, inside FOLDER or not,
+    so a part of the wiki shows how it connects to the rest;
+  - a link to a file no summary covers stays a link to the file;
+  - links to its own notes, its parent and its children are left out, since the tree shows them;
+  - broken links, links inside code and web links are left out.
+
+```
+$ labbrain hierarchy
+wrote _maps/hierarchy.yaml
+drew _maps/hierarchy.canvas
+$ cat _maps/hierarchy.yaml
+# Written by `labbrain hierarchy` from the folder summaries, and rewritten on every run.
+title: vault
+path: index.md
+children:
+- title: Garden — Summary
+  path: Garden/Garden_summary.md
+  description: Trials of tomatoes and beans in the test garden, with soil notes.
+  links:
+  - Kitchen/Recipes.md
+  children:
+  - title: Soil — Summary
+    path: Garden/Soil/Soil_summary.md
+    description: Compost notes for the garden beds.
+- title: Shelf — Summary
+  path: Shelf/Shelf_summary.md
+  description: Jars kept on the shelf.
+```
+The picture is only as current as the summaries: run `labbrain stale` first.
+
+### labbrain graph
+```
+labbrain graph [--vault DIR]
+```
+Brings the wiki's graph up to date in `_maps/graph.json`, and draws it as a page to explore in a
+browser, `_maps/graph.html` (see [The graph page](#the-graph-page)). The graph is a cache: code builds it from
+the wiki, nobody edits it, and git ignores it, like everything in `_maps/`. Throw it away and the
+next run builds the same one.
+
+- **Each markdown file is a node,** except `index.md` and `log.md`, which link to everything around
+  them. A node has the file's path as its `id`, and its `type`, `title`, `description`, `tags` and
+  `topics` from its header, where it has them. A `title` comes from the header, else the first
+  `# heading`, else the file name. `hash` is the file's git blob hash.
+- **Edges have a `kind`:**
+
+  | kind | from | to |
+  |---|---|---|
+  | `link` | a file | a file its text links to, by `[[wikilink]]` or relative link, resolved the way Obsidian resolves it |
+  | `covers` | a summary | a note it is built from (one of its `sources`) |
+  | `child` | a summary | the summary of a subfolder under it |
+
+  Links inside code, to files that don't exist, to files that aren't markdown, and to the file
+  itself make no edge.
+- **The same wiki always gives the same file:** nodes and edges are sorted, and nothing in it
+  depends on the time or on who ran it. Anyone who builds it from the same commits gets the same
+  bytes.
+- **Only changed files are read.** `_maps/graph-cache.json` keeps what was read from each file,
+  under the file's git blob hash, and a file whose hash hasn't changed isn't read again. Links are
+  resolved again on every run, since a new file can change where `[[Beans]]` leads.
+
+```json
+{
+ "title": "vault",
+ "nodes": [
+  {"id": "Garden/Garden_summary.md", "type": "Folder Summary", "title": "Garden — Summary",
+   "description": "Trials of tomatoes and beans in the test garden, with soil notes.", "hash": "…"},
+  {"id": "Garden/Tomatoes.md", "type": "Note", "title": "Tomatoes", "hash": "…"}
+ ],
+ "edges": [
+  {"from": "Garden/Garden_summary.md", "to": "Garden/Soil/Soil_summary.md", "kind": "child"},
+  {"from": "Garden/Garden_summary.md", "to": "Garden/Tomatoes.md", "kind": "covers"},
+  {"from": "Garden/Tomatoes.md", "to": "Kitchen/Recipes.md", "kind": "link"}
+ ]
+}
+```
+
+```
+$ labbrain graph
+wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 13 file(s) read, the rest unchanged
+drew _maps/graph.html
+$ labbrain graph
+wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 0 file(s) read, the rest unchanged
+drew _maps/graph.html
+```
+
+#### The graph page
+One HTML file with the whole graph inside it. It loads nothing from anywhere else, so it works
+opened from disk or from a server, in any browser, without Obsidian.
+- **It opens at the wiki's root,** with the top summaries around it, and the files 1 step further
+  out (`Depth`, 0 to 3). A page drawn by `labbrain search` opens on what the search found instead.
+- **Click a file to put it in the middle,** with the files around it in rings: 1 away, 2 away, and
+  so on. The browser's back button goes back to the view before.
+- **Search** by title, description, path, tags and topics, with the wiki's vocabulary, as step 1 of
+  [`labbrain search`](#labbrain-search). The full text isn't in the page: for that, run
+  `labbrain search --text`.
+- **Show and hide:** which edges to follow (links, the summary tree, a summary's notes); the
+  summaries over the notes in view; each note type; and only the paths that contain some text. The
+  types in `graph.hidden` (see [the wiki's own config](configuration.md#the-wikis-own-config)) start
+  hidden.
+- **The side panel** lists everything in view, by distance, with a link to open each file. Links
+  lead to `graph.file_url` if the wiki's config sets one, else to the files beside `_maps/`.
+- **Colours:** summaries blue (and drawn larger), notes orange, the concepts drafted from papers
+  (`Paper`, `Method`, `Finding`, …) aqua, and every other type grey. Light or dark follows your
+  system.
+- **More than 350 files in view** and the outer rings are cut: lower the depth or hide some types.
+
+### labbrain search
+```
+labbrain search WORD... [--depth N] [--text] [--vault DIR]
+```
+Finds the files about WORD..., taken together as one phrase, with code only: no model reads
+anything. It brings [the graph](#labbrain-graph) up to date first, then climbs from the cheapest
+step and stops when one finds something:
+
+| step | looks at | reads files |
+|---|---|---|
+| 1. the headers | each file's title, description, path, `tags` and `topics` | no: they are in the graph |
+| 2. the full text | each file's text; only if step 1 found nothing, or with `--text` | yes |
+| 3. the links | the files linked to or from what was found, up to `--depth` away (default 1), and the summaries that cover them | no |
+
+- **The wiki's vocabulary widens the words** (see [the wiki's own config](configuration.md#the-wikis-own-config)).
+  A word that names a topic, or one of its synonyms, also finds the topic's other synonyms and its
+  narrower topics: with `cancer: {synonyms: [tumour], narrower: [neoantigen]}`, `tumour` finds files
+  about cancer and neoantigens.
+- **A word matches from the start of a word,** in any case: `tomato` finds *Tomatoes*, but `omato`
+  finds nothing. `tags` and `topics` must match whole.
+- **Step 3 follows `link` edges only,** in both directions. A summary that covers a file found is
+  added for context, but its other notes aren't.
+
+It prints the files by step, with why each is there, then writes what it found to
+`_maps/search/<words>.json`, and a [graph page](#the-graph-page) that opens on it,
+`_maps/search/<words>.html`. The JSON is in the graph's own format plus a `filter` that records the query, the
+words searched, the topics they named, the depth and the last step that found something. A hit has
+`hit` (where it matched, or `text` with `matches`), a linked file has `distance`, and a summary
+added for context has `context`. It exits with 1 if nothing was found.
+
+```
+$ labbrain search tomato
+looked for: tomato
+step 1, the headers: 2 file(s)
+  Garden/Garden_summary.md — Garden — Summary  (description)
+  Garden/Tomatoes.md — Tomatoes  (title)
+step 3, linked up to 1 away: 6 file(s)
+  Garden/Beans.md — Beans  (1 away)
+  Garden/Seeds/Pumpkin.md — Pumpkin  (1 away)
+  Garden/Soil/Soil_summary.md — Soil — Summary  (1 away)
+  Kitchen/Recipes.md — Recipes  (1 away)
+  Kitchen/Session_2026-01-05.md — Planning session  (1 away)
+  Kitchen/Spice rack.md — Spice rack  (1 away)
+wrote _maps/search/tomato.json
+drew _maps/search/tomato.html
+$ labbrain search brine
+looked for: brine
+step 2, the full text: 1 file(s)
+  Kitchen/Pickling.md — Pickling  (3 matches)
+step 3, linked up to 1 away: 1 file(s)
+  Shelf/Jars.md — Jars  (1 away)
+and the summaries over them: 1 file(s)
+  Shelf/Shelf_summary.md — Shelf — Summary
+wrote _maps/search/brine.json
+drew _maps/search/brine.html
 ```
 
 ## Common sequences
