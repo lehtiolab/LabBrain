@@ -52,6 +52,7 @@ def test_the_environment_wins_over_the_file(tmp_path):
         "LABBRAIN_CONTRIBUTOR": "human:file",
         "LABBRAIN_VAULT": None,
         "LABBRAIN_ANNOTATE": False,
+        "LABBRAIN_VIEW": "canvas",
     }
     got = settings({"LABBRAIN_CONTRIBUTOR": "human:shell"}, path)
     assert got["LABBRAIN_CONTRIBUTOR"] == "human:shell"
@@ -60,6 +61,7 @@ def test_the_environment_wins_over_the_file(tmp_path):
     assert settings({}, tmp_path / "none.env") == {
         **dict.fromkeys(SETTINGS),
         "LABBRAIN_ANNOTATE": False,
+        "LABBRAIN_VIEW": "canvas",
     }
 
 
@@ -125,6 +127,7 @@ def test_the_vault_setting_is_only_a_fallback(vault, tmp_path, monkeypatch, caps
         ({"LABBRAIN_VAULT": "{tmp}/plain"}, ""),  # a folder, but not a wiki
         ({}, "LABBRAIN_CONTRIBUTOR=human:ada\nLABBRAIN_ANNOTATE=yes\n"),
         ({}, "LABBRAIN_ANNOTATE=true\n"),  # whose notes?
+        ({}, "LABBRAIN_VIEW=png\n"),
     ],
     ids=[
         "missing file",
@@ -134,6 +137,7 @@ def test_the_vault_setting_is_only_a_fallback(vault, tmp_path, monkeypatch, caps
         "not a wiki",
         "annotate not true or false",
         "annotate without a contributor",
+        "view not canvas or html",
     ],
 )
 def test_bad_settings_are_refused(tmp_path, monkeypatch, capsys, environ, text):
@@ -197,7 +201,7 @@ def test_help_lists_every_command(capsys):
     assert e.value.code == 0
     out = capsys.readouterr().out
     assert all(c in out for c in COMMANDS)
-    assert len(COMMANDS) == 8
+    assert len(COMMANDS) == 9
 
 
 def test_no_command(capsys):

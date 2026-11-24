@@ -27,6 +27,7 @@ There is one module per subject, in `src/labbrain/okf/`:
 | `links.py` | wikilinks, broken links, and carrying hashes past link-only edits |
 | `index.py` | the generated `index.md` listings |
 | `drift.py` | hot files and drift checks |
+| `canvas.py` | pictures of JSON and YAML data, in `_maps/` |
 | `check.py` | `check`: every conformance test at once |
 
 `src/labbrain/cli.py` is the command line. It reads the settings, finds the wiki, calls functions

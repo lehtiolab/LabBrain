@@ -48,7 +48,7 @@ that doesn't exist, it prints `no such folder: DIR` and exits with 2.
 the wiki without `--vault`.
 
 ## File arguments
-`stamp`, `links` and `drift-stamp` take file paths.
+`stamp`, `links`, `drift-stamp` and `canvas` take file paths.
 - **They are relative to where you run the command,** like any shell command, not to the wiki's
   root. From the root you write `Garden/Garden_summary.md`; from inside `Garden/`, `Garden_summary.md`.
   Absolute paths work too.
@@ -70,7 +70,7 @@ actor must name the model that actually did the work. `frontmatter` falls back t
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
 | 1 | `check` found problems, `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
-| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, or a bad setting. Nothing was written |
+| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, or a bad setting. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
 
@@ -85,6 +85,7 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`links`](#labbrain-links) | the notes' link syntax, and the hashes recorded in summaries |
 | [`hot`](#labbrain-hot) | nothing |
 | [`drift-stamp`](#labbrain-drift-stamp) | the summaries' `drift_verification` |
+| [`canvas`](#labbrain-canvas) | pictures in `_maps/`, which git ignores |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -407,6 +408,51 @@ $ labbrain drift-stamp --by claude-code/claude-opus-5-5 Garden/Tomatoes.md
 drift-stamped Garden/Garden_summary.md
 $ labbrain drift-stamp --by claude-code/claude-opus-5-5 Garden/Tomatoes.md
 nothing due for Garden/Tomatoes.md
+```
+
+### labbrain canvas
+```
+labbrain canvas FILE... [--view canvas|html] [--vault DIR]
+```
+Draws each `.json`, `.yaml` or `.yml` FILE as a tree of boxes, so you can see how the data nests.
+- **The view** is `--view`, else `LABBRAIN_VIEW` (see [Configuration](configuration.md)), else
+  `canvas`:
+  - `canvas`: an Obsidian canvas ([JSON Canvas](https://jsoncanvas.org)), which Obsidian opens;
+  - `html`: one web page, with nothing loaded from the internet.
+- **The picture goes in `_maps/` at the wiki root,** at the file's own path with the view's
+  extension: `Garden/plan.yaml` becomes `_maps/Garden/plan.canvas`. A file already in `_maps/` gets
+  its picture beside it. Drawing a file again replaces its picture.
+- **`_maps/` is never part of the wiki.** labbrain writes `_maps/.gitignore`, so git ignores the
+  folder, and no other command looks inside it: no summary covers it, and no listing shows it.
+
+**What goes in a box:**
+- A mapping or a list is a box, titled by its key. A list item has no title.
+- A value that is neither, such as a number or a short text, is a line in its parent's box:
+  `budget: 120`, or `- basil` for a list item. Each nested mapping or list is a box of its own, with
+  an arrow from its parent.
+- **Some keys shape the picture** instead of showing as `key: value`:
+
+  | key | does |
+  |---|---|
+  | `title` | titles the box |
+  | `description` | a line in the box, without its key |
+  | `path` | when it names a file in the wiki, the title links to that file |
+  | `children` | a list whose items are boxes under this one, without a `children` box between |
+  | `links` | wiki files this box links to: a coloured arrow in a canvas, a dashed one in a page. A file no box shows gets a box of its own, below the tree |
+
+A `path` or a link that isn't a file in the wiki is shown as text. In a canvas, click a title to open
+its file. In a page, the title is a link to the file.
+
+YAML is read with PyYAML's `safe_load`, so a file can't make labbrain run anything. A file that
+isn't JSON or YAML, doesn't exist, or doesn't parse is refused with `can't draw <file>: <why>`. Every
+FILE is read before any picture is written, so one bad file means nothing is written, and the exit
+status is 2.
+
+```
+$ labbrain canvas Garden/plan.yaml
+drew _maps/Garden/plan.canvas
+$ labbrain canvas --view html Garden/plan.yaml Garden/Tomatoes.md
+can't draw Garden/Tomatoes.md: not a .json, .yaml or .yml file
 ```
 
 ## Common sequences

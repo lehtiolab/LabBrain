@@ -134,6 +134,7 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain links [FILE...]` | turns wikilinks into relative links and carries hashes forward | notes' link syntax, summaries' hashes |
 | `labbrain hot [--days D] [--min N] [--recheck R]` | lists often-changed files, the files that cite them, and which are due a drift check | nothing |
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check | summaries' `drift_verification` |
+| `labbrain canvas FILE...` | draws JSON or YAML files as trees of boxes | pictures in `_maps/` only |
 
 ## Running labbrain
 Run `labbrain <command>` from the wiki root, or from anywhere with `--vault <wiki root>`. File

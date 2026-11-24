@@ -10,6 +10,7 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
+from .okf.canvas import VIEWS, NotData, draw
 from .okf.check import check
 from .okf.drift import RECHECK, drift_stamp, hot, is_due
 from .okf.files import RESERVED, md_files, read, text_files, write
@@ -38,11 +39,14 @@ COMMANDS = {
     "check.",
     "drift-stamp": "After a drift check of FILE: set its drift_verification entry in each SUMMARY, "
     "by default every summary that `hot` shows as due for FILE.",
+    "canvas": "Draw each .json, .yaml or .yml FILE as a tree of boxes, into _maps/ at the wiki "
+    "root: an Obsidian canvas or an HTML page (--view, else LABBRAIN_VIEW, else canvas). Git "
+    "ignores _maps/, and nothing else in labbrain looks inside it.",
 }
 
 
 # Settings about the person running labbrain, never about the wiki (docs/configuration.md).
-SETTINGS = ("LABBRAIN_CONTRIBUTOR", "LABBRAIN_VAULT", "LABBRAIN_ANNOTATE")
+SETTINGS = ("LABBRAIN_CONTRIBUTOR", "LABBRAIN_VAULT", "LABBRAIN_ANNOTATE", "LABBRAIN_VIEW")
 # ponytail: the env file of the checkout labbrain runs from. An installed wheel has none, so it
 # needs LABBRAIN_ENV; a per-user config folder is the upgrade if that becomes the common case.
 ENV_FILE = Path(__file__).resolve().parents[2] / "env" / ".env"
@@ -80,7 +84,8 @@ class BadSetting(Exception):
 
 def settings(environ, env_file=ENV_FILE):
     """SETTINGS from the env file ($LABBRAIN_ENV, else env_file), each one overridden by environ;
-    None where unset or empty, and LABBRAIN_ANNOTATE as a bool (unset: False)."""
+    None where unset or empty, LABBRAIN_ANNOTATE as a bool (unset: False), and LABBRAIN_VIEW
+    (unset: canvas)."""
     path = os.path.expanduser(environ.get("LABBRAIN_ENV") or str(env_file))
     if environ.get("LABBRAIN_ENV") and not os.path.exists(path):
         raise BadSetting("LABBRAIN_ENV", path, "an existing file")
@@ -89,7 +94,7 @@ def settings(environ, env_file=ENV_FILE):
         if k.startswith("LABBRAIN_") and k not in SETTINGS:
             raise BadSetting(k, found[k], "one of %s (in %s)" % (", ".join(SETTINGS), path))
     out = {k: environ.get(k) or found.get(k) or None for k in SETTINGS}
-    who, vault, annotate = (out[k] for k in SETTINGS)
+    who, vault, annotate, view = (out[k] for k in SETTINGS)
     if who and not CONTRIBUTOR_RE.fullmatch(who):
         raise BadSetting("LABBRAIN_CONTRIBUTOR", who, "human:<name>, without an email address")
     if (annotate or "false").lower() not in ("true", "false"):
@@ -97,6 +102,9 @@ def settings(environ, env_file=ENV_FILE):
     out["LABBRAIN_ANNOTATE"] = (annotate or "").lower() == "true"
     if out["LABBRAIN_ANNOTATE"] and not who:  # the preference is one person's, about their notes
         raise BadSetting("LABBRAIN_ANNOTATE", annotate, "LABBRAIN_CONTRIBUTOR set as well")
+    out["LABBRAIN_VIEW"] = view = view or "canvas"
+    if view not in VIEWS:
+        raise BadSetting("LABBRAIN_VIEW", view, " or ".join(VIEWS))
     if vault:
         out["LABBRAIN_VAULT"] = vault = os.path.abspath(os.path.expanduser(vault))
         if not declares_okf(vault):
@@ -152,6 +160,10 @@ def parser():
     )
     cmds["stamp"].add_argument("files", nargs="*", metavar="SUMMARY")
     cmds["links"].add_argument("files", nargs="*", metavar="FILE")
+    cmds["canvas"].add_argument("files", nargs="*", metavar="FILE")
+    cmds["canvas"].add_argument(
+        "--view", choices=VIEWS, help="canvas or html (default: LABBRAIN_VIEW, else canvas)"
+    )
     cmds["drift-stamp"].add_argument("files", nargs="*", metavar="FILE [SUMMARY...]")
     cmds["hot"].add_argument("--days", type=int, default=30, help="window (default 30)")
     cmds["hot"].add_argument("--min", type=int, default=3, help="changes to be hot (default 3)")
@@ -321,6 +333,17 @@ def main(argv=None):
                     "       cited by  %s (%d link%s; %s)"
                     % (f, k, "s" if k > 1 else "", drift(checks[f]))
                 )
+        return 0
+    if cmd == "canvas":
+        if not rest:
+            print("usage: canvas FILE...   (.json, .yaml or .yml files of the wiki)")
+            return 2
+        try:
+            for p in draw(vault, rest, args.view or cfg["LABBRAIN_VIEW"]):
+                print("drew", p)
+        except NotData as e:
+            print(e)
+            return 2
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:

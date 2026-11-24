@@ -35,8 +35,9 @@ jobs will run unattended at night.
 | part | role | state |
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
-| `labbrain.cli` | `labbrain <command>`, 8 commands; reads the settings | works |
-| `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`) | works |
+| `labbrain.okf.canvas` | pictures of JSON and YAML data in `_maps/`: an Obsidian canvas or a web page | experimental: being tried out |
+| `labbrain.cli` | `labbrain <command>`, 9 commands; reads the settings | works |
+| `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`, `LABBRAIN_VIEW`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
 | `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift` | first versions |
 | `patterns/` | trace and pattern formats, dummy examples | draft; no code writes them yet |

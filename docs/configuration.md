@@ -16,6 +16,7 @@ template: it lists every setting, each one empty, so a copy you forget to edit c
 | `LABBRAIN_CONTRIBUTOR` | you, as an actor: the default for `labbrain frontmatter --by` | `human:ada` |
 | `LABBRAIN_VAULT` | the wiki to use when you run labbrain outside any wiki | `~/wiki` |
 | `LABBRAIN_ANNOTATE` | whether agents may add metadata to the header of your notes: `true` or `false` (the default) | `true` |
+| `LABBRAIN_VIEW` | how you like `labbrain canvas` pictures: `canvas` (the default) for Obsidian, or `html` for a web page | `html` |
 | `LABBRAIN_ENV` | where your settings file is, if not `env/.env`. Set it in your shell, not in the file | `~/.config/labbrain.env` |
 
 **`LABBRAIN_CONTRIBUTOR`** is written as `human:<name>`, with no spaces and no email address. It is
@@ -44,9 +45,12 @@ changes to the wrong wiki.
   [okf-conventions](../skills/okf-conventions/SKILL.md) skill). No labbrain command adds agent
   metadata yet.
 
+**`LABBRAIN_VIEW`** is only how you like to look at pictures, so it changes nothing in the wiki.
+`--view` overrides it for one run (see [labbrain canvas](usage.md#labbrain-canvas)).
+
 ## Where labbrain looks
 For each setting, the first of these that has a value wins:
-1. the option on the command line (`--by`, `--vault`);
+1. the option on the command line (`--by`, `--vault`, `--view`);
 2. the variable in your shell's environment, if it's set and not empty;
 3. the settings file: the file `LABBRAIN_ENV` names, or else `env/.env` in the LabBrain checkout
    that labbrain runs from.
@@ -68,7 +72,8 @@ labbrain stops before doing anything, prints `bad setting …` and exits with 2,
 - `LABBRAIN_CONTRIBUTOR` isn't `human:<name>`, or contains an email address;
 - `LABBRAIN_VAULT` isn't the root of a wiki;
 - `LABBRAIN_ANNOTATE` isn't `true` or `false`, or is `true` without a `LABBRAIN_CONTRIBUTOR` to say
-  whose notes it is about.
+  whose notes it is about;
+- `LABBRAIN_VIEW` isn't `canvas` or `html`.
 
 Names that don't start with `LABBRAIN_` are ignored, so the file can hold other tools' settings too.
 
