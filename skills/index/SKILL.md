@@ -58,6 +58,8 @@ changed, so a quiet night costs nothing. When you run this skill by hand, you do
    and what changed in the map.
 10. **Check.** `labbrain check` must end with `OK`. If it doesn't, fix what it points to (usually a
     missing `stamp` or `index`) before you report.
+11. **Commit.** `labbrain commit --by <your actor> -m "index: <what changed>"`. It commits in each
+    repo with changes. Never push: a person does that.
 
 ## Rules
 - **Never change a raw note,** apart from the mechanical edits in steps 2 and 3.

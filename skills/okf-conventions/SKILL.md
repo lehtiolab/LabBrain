@@ -119,6 +119,7 @@ skill checks summaries against the files that change most.
 ## Several repos
 A wiki can span several git repos. Each one is a bundle, with its own `index.md` and `log.md`.
 Links can cross between them, and each change is committed in the repo that owns the file.
+Agents commit, with `labbrain commit`; they never push. A person pushes.
 
 ## Commands
 | command | what it does | writes |
@@ -131,6 +132,7 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain links [FILE...]` | turns wikilinks into relative links and carries hashes forward | notes' link syntax, summaries' hashes |
 | `labbrain hot [--days D] [--min N] [--recheck R]` | lists often-changed files, the files that cite them, and which are due a drift check | nothing |
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check | summaries' `drift_verification` |
+| `labbrain commit --by ACTOR -m MESSAGE` | commits a job's changes in each repo, once `check` passes; never pushes | a commit per repo |
 
 ## Running labbrain
 Run `labbrain <command>` from the wiki root, or from anywhere with `--vault <wiki root>`. File

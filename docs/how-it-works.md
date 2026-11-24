@@ -100,8 +100,14 @@ to date:
 | the map and the log | **model** | adds `Fresh.md` to the map, and a log entry |
 | `labbrain index` | code | regenerates the listings |
 | `labbrain check` | code | must end with `OK` |
+| `labbrain commit --by <model> -m "index: …"` | code | commits the job's work in each repo; a person pushes it |
 
-Only two of the eight steps call a model.
+Only two of the nine steps call a model.
+
+This flow describes today's local job, not the full version-control agent. `labbrain commit` makes
+local commits and stops. A future queued worker is expected to compare incoming versions, coordinate
+multiple repositories, run audit and drift checks, and advance versions under an explicit policy.
+Its design and unresolved workflow choices are in [Version control agent](version-control-agent.md).
 
 ## Two ways to run a job
 - **By hand.** You bring your own LLM (Claude Code, Codex, a local model, anything that reads
@@ -122,7 +128,7 @@ A skill or pattern that works beyond one lab comes back here by pull request, wi
 taken out. Raw traces never leave the wiki.
 
 ## What exists today
-- **Works:** the eight commands, the five wiki skills, and the settings in `env/`.
+- **Works:** the nine commands, the five wiki skills, and the settings in `env/`.
 - **Draft:** the trace and pattern formats.
 - **Planned:** the code that calls a model (`llm()`), the nightly run, search code, an MCP server,
   and task boards as a separate feature.

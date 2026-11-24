@@ -74,6 +74,8 @@ summary, so it can't copy that summary's mistakes.
    - **Report:** a table in chat with the file, its changes, the files checked, and a verdict: no
      drift, fixed (what), for the author (what), or skipped.
    - **Check:** `labbrain check` must end with `OK`.
+9. **Commit.** `labbrain commit --by <your actor> -m "drift: <what was checked>"`. Never push: a
+   person does that.
 
 ## Stop and ask
 Stop, and don't start the next step, whenever a fix needs the author's judgement (step 6), or the

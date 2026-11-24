@@ -27,6 +27,36 @@ def repos(vault):
     return [d for d, _, _ in walk(vault) if os.path.exists(os.path.join(vault, d, ".git"))]
 
 
+def commit(vault, actor, message):
+    """Stage and commit every change in each repo of the vault, authored by actor; never pushes.
+    [(repo, short hash)] for the repos that had changes. A repo inside another is left out of it,
+    so the outer repo never records it as an embedded repo."""
+    found, done = repos(vault), []
+    for repo in found:
+        inner = [r for r in found if r != repo and (not repo or r.startswith(repo + os.sep))]
+        exclude = [":(exclude,literal)" + os.path.relpath(r, repo or ".") for r in inner]
+
+        def git(*args):
+            return subprocess.run(
+                ["git", *args],
+                cwd=os.path.join(vault, repo),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+
+        git("add", "-A", "--", ".", *exclude)
+        if not git("diff", "--cached", "--name-only"):
+            continue
+        # The actor stands in for the email too: no email address goes in a commit.
+        git(
+            *("-c", "user.name=" + actor, "-c", "user.email=" + actor),
+            *("commit", "-q", "--author", "%s <%s>" % (actor, actor), "-m", message),
+        )
+        done.append((repo, git("rev-parse", "--short", "HEAD").strip()))
+    return done
+
+
 def git_paths(vault, repo, *args):
     """NUL-separated paths from a git command run with -z, as vault-relative paths."""
     out = subprocess.run(

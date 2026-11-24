@@ -40,12 +40,12 @@ jobs will run unattended at night.
 | part | role | state |
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
-| `labbrain.cli` | `labbrain <command>`, 8 commands; reads the settings | works |
+| `labbrain.cli` | `labbrain <command>`, 9 commands; reads the settings | works |
 | `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
 | `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift` | first versions |
 | `patterns/` | trace and pattern formats, dummy examples | draft; no code writes them yet |
-| *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, search code, an MCP server | not started |
+| *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, the version-control worker ([design](docs/version-control-agent.md)), search code, an MCP server | not started |
 | *(separate feature)* | task boards (Kanban): an Obsidian plugin's format, maybe a front-end feature later | not started; no board handling in the core |
 
 **One entry point:** `labbrain`, the same as `python -m labbrain`.
@@ -68,6 +68,8 @@ skills and patterns come back here by pull request; raw traces never do.
 - **Agent metadata on a note needs its author's consent:** `annotate: true` in the note's header,
   written by `frontmatter` from the author's own `LABBRAIN_ANNOTATE`. What an agent adds is recorded
   in `annotated`. Never decided by whoever runs the job.
+- **Each job commits its own work with `labbrain commit`,** so a run can be reverted on its own. No
+  job or skill pushes; publishing belongs to the planned version-control worker.
 - **Provenance is git blob hashes** (`git hash-object`), so `git cat-file -p` recovers the exact
   version a summary was built from.
 - **The frontmatter parser is hand-written,** so key order, flow mappings and quoting survive a
