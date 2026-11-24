@@ -86,6 +86,7 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`hot`](#labbrain-hot) | nothing |
 | [`drift-stamp`](#labbrain-drift-stamp) | the summaries' `drift_verification` |
 | [`canvas`](#labbrain-canvas) | pictures in `_maps/`, which git ignores |
+| [`hierarchy`](#labbrain-hierarchy) | `_maps/hierarchy.yaml` and its picture |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -454,6 +455,49 @@ drew _maps/Garden/plan.canvas
 $ labbrain canvas --view html Garden/plan.yaml Garden/Tomatoes.md
 can't draw Garden/Tomatoes.md: not a .json, .yaml or .yml file
 ```
+
+### labbrain hierarchy
+```
+labbrain hierarchy [--view canvas|html] [--vault DIR]
+```
+Writes the folder summaries as one tree to `_maps/hierarchy.yaml`, then draws it beside, as
+[`canvas`](#labbrain-canvas) does: `_maps/hierarchy.canvas` or `_maps/hierarchy.html`. Both are
+rewritten on every run. It reads only the summaries' frontmatter and links: no model, and no note is
+read.
+- **The root is the wiki,** named after its folder, with its root `index.md` as its `path`.
+- **Each summary sits under the summary of the folder above it,** as `stamp` would record its
+  `parent`. The top summary of each git repo in the wiki sits under the root.
+- **Each summary has** its `title`, its `path`, its `description` if it has one, its `links` and
+  its `children`.
+- **`links` are what its text links to outside its own part of the tree:**
+  - a link to a note becomes a link to the summary that covers the note;
+  - a link to a file no summary covers stays a link to the file, which gets a box of its own;
+  - links to its own notes, its parent and its children are left out, since the tree shows them;
+  - broken links, links inside code and web links are left out.
+
+```
+$ labbrain hierarchy
+wrote _maps/hierarchy.yaml
+drew _maps/hierarchy.canvas
+$ cat _maps/hierarchy.yaml
+# Written by `labbrain hierarchy` from the folder summaries, and rewritten on every run.
+title: vault
+path: index.md
+children:
+- title: Garden — Summary
+  path: Garden/Garden_summary.md
+  description: Trials of tomatoes and beans in the test garden, with soil notes.
+  links:
+  - Kitchen/Recipes.md
+  children:
+  - title: Soil — Summary
+    path: Garden/Soil/Soil_summary.md
+    description: Compost notes for the garden beds.
+- title: Shelf — Summary
+  path: Shelf/Shelf_summary.md
+  description: Jars kept on the shelf.
+```
+The picture is only as current as the summaries: run `labbrain stale` first.
 
 ## Common sequences
 **After notes changed** (the code steps of the `index` skill):

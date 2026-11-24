@@ -16,6 +16,7 @@ from .okf.drift import RECHECK, drift_stamp, hot, is_due
 from .okf.files import RESERVED, md_files, read, text_files, write
 from .okf.frontmatter import content_hash, fm_get, split_fm
 from .okf.git import git_hashes
+from .okf.hierarchy import write_hierarchy
 from .okf.index import OKF_VERSION, build_indexes
 from .okf.links import carry_hashes, convert_links, name_index
 from .okf.notes import add_frontmatter
@@ -42,6 +43,9 @@ COMMANDS = {
     "canvas": "Draw each .json, .yaml or .yml FILE as a tree of boxes, into _maps/ at the wiki "
     "root: an Obsidian canvas or an HTML page (--view, else LABBRAIN_VIEW, else canvas). Git "
     "ignores _maps/, and nothing else in labbrain looks inside it.",
+    "hierarchy": "Write the folder summaries as one tree to _maps/hierarchy.yaml: each summary's "
+    "title, description and child summaries, and the other summaries and files its text links "
+    "to. Then draw it beside, as `canvas` does.",
 }
 
 
@@ -161,9 +165,10 @@ def parser():
     cmds["stamp"].add_argument("files", nargs="*", metavar="SUMMARY")
     cmds["links"].add_argument("files", nargs="*", metavar="FILE")
     cmds["canvas"].add_argument("files", nargs="*", metavar="FILE")
-    cmds["canvas"].add_argument(
-        "--view", choices=VIEWS, help="canvas or html (default: LABBRAIN_VIEW, else canvas)"
-    )
+    for name in ("canvas", "hierarchy"):
+        cmds[name].add_argument(
+            "--view", choices=VIEWS, help="canvas or html (default: LABBRAIN_VIEW, else canvas)"
+        )
     cmds["drift-stamp"].add_argument("files", nargs="*", metavar="FILE [SUMMARY...]")
     cmds["hot"].add_argument("--days", type=int, default=30, help="window (default 30)")
     cmds["hot"].add_argument("--min", type=int, default=3, help="changes to be hot (default 3)")
@@ -344,6 +349,12 @@ def main(argv=None):
         except NotData as e:
             print(e)
             return 2
+        return 0
+    if cmd == "hierarchy":
+        tree = write_hierarchy(vault)
+        print("wrote", tree)
+        for p in draw(vault, [tree], args.view or cfg["LABBRAIN_VIEW"]):
+            print("drew", p)
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:

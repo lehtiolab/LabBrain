@@ -178,19 +178,19 @@ body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: #f6f6f4; col
        background: #fff; border: 1px solid #bbb; border-radius: 8px; }
 .box.file { border-color: #5a7bd8; }
 .box p { margin: 6px 0 0; }
-svg { position: absolute; left: 0; top: 0; overflow: visible; }
+svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 .tree { stroke: #999; fill: none; stroke-width: 1.5; }
 .link { stroke: #a35bd1; fill: none; stroke-width: 1.5; stroke-dasharray: 6 4; }
 </style>
 </head>
 <body>
 <div class="map" style="width:%(w)dpx;height:%(h)dpx">
+%(boxes)s
 <svg width="%(w)d" height="%(h)d">
 <defs><marker id="tip" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7"
 orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#999"/></marker></defs>
 %(arrows)s
 </svg>
-%(boxes)s
 </div>
 </body>
 </html>
