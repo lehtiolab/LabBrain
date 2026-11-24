@@ -9,7 +9,7 @@ import yaml
 from conftest import ENV
 
 from labbrain.cli import main
-from labbrain.okf.canvas import NotData, boxes, draw, layout, load, picture_path
+from labbrain.okf.canvas import NotData, boxes, draw, load, picture_path
 
 PLAN = """\
 title: Garden plan
@@ -19,7 +19,7 @@ beds:
     path: Garden/Tomatoes.md
     crops: [tomatoes, basil]
   - title: South bed
-    links: [Garden/Beans.md, Nowhere.md]
+    links: [Garden/Garden_summary.md, Garden/Beans.md, Garden/Beans.md, Nowhere.md]
 budget: 120
 """
 
@@ -38,8 +38,12 @@ def test_what_goes_in_the_boxes(vault):
     assert beds["title"] == "beds" and beds["lines"] == []
     assert (north["title"], north["file"]) == ("North bed", "Garden/Tomatoes.md")
     assert north["kids"][0]["lines"] == ["- tomatoes", "- basil"]
-    # a link to a file that isn't in the wiki is shown, not drawn
-    assert south["links"] == ["Garden/Beans.md"] and south["lines"] == ["links: Nowhere.md"]
+    # a link shows its file's title, else its name, once; one that isn't a wiki file is text
+    assert south["links"] == [
+        ("Garden/Garden_summary.md", "Garden — Summary"),
+        ("Garden/Beans.md", "Beans"),
+    ]
+    assert south["lines"] == ["links: Nowhere.md"]
 
 
 def test_a_path_outside_the_wiki_is_only_text(vault):
@@ -63,12 +67,14 @@ def test_the_canvas(vault, plan):
     assert all(set(n) == {"id", "type", "text", "x", "y", "width", "height"} for n in c["nodes"])
     assert all({e["fromNode"], e["toNode"]} <= ids for e in c["edges"])
     assert [(a["id"], b["id"]) for a, b in combinations(c["nodes"], 2) if overlap(a, b)] == []
-    text = {n["text"].split("\n")[0]: n["id"] for n in c["nodes"]}
+    text = [n["text"] for n in c["nodes"]]
     assert "**[[Garden/Tomatoes.md|North bed]]**" in text
-    beans = text["**[[Garden/Beans.md|Beans.md]]**"]  # a link no box showed gets its own
-    links = [e for e in c["edges"] if "color" in e]
-    assert [(e["fromNode"], e["toNode"]) for e in links] == [(text["**South bed**"], beans)]
-    assert len(c["edges"]) - len(links) == len(c["nodes"]) - 2  # a tree, plus the extra box
+    assert (
+        "**South bed**\n\nlinks: Nowhere.md\n"
+        "→ [[Garden/Garden_summary.md|Garden — Summary]] · [[Garden/Beans.md|Beans]]"
+    ) in text
+    assert len(c["nodes"]) == 5 and len(c["edges"]) == 4  # a tree: links are text, not arrows
+    assert {(e["fromSide"], e["toSide"]) for e in c["edges"]} == {("right", "left")}
 
 
 def test_git_ignores_the_pictures(vault, plan):
@@ -87,9 +93,9 @@ def test_git_ignores_the_pictures(vault, plan):
 def test_the_html_page(vault, plan):
     assert draw(str(vault), [plan], "html") == ["_maps/Garden/plan.html"]
     page = (vault / "_maps" / "Garden" / "plan.html").read_text()
-    assert page.count('<div class="box') == 6
+    assert page.count('<div class="box') == 5 and page.count("<path class") == 4
     assert '<a href="../../Garden/Tomatoes.md">North bed</a>' in page
-    assert page.count('class="link"') == 1
+    assert '→ <a href="../../Garden/Garden_summary.md">Garden — Summary</a> · <a' in page
     assert "://" not in page and "<script" not in page  # nothing is loaded from elsewhere
 
 
@@ -138,14 +144,3 @@ def test_the_command(vault, plan, monkeypatch, capsys):
     usage, *drew = capsys.readouterr().out.splitlines()
     assert usage.startswith("usage: canvas FILE...")
     assert drew == ["drew _maps/Garden/%s" % f for f in ("plan.canvas", "plan.html", "plan.canvas")]
-
-
-def test_extra_boxes_wrap_to_the_width_of_the_tree(vault):
-    """Files no box shows get boxes below the tree, in rows no wider than the tree: here, one
-    column."""
-    files = ["Garden/Beans.md", "Garden/Tomatoes.md", "Kitchen/Recipes.md", "Shelf/Jars.md"]
-    placed, _ = layout(boxes(str(vault), {"title": "x", "links": files}, "x"))
-    extra = placed[1:]
-    assert [b["file"] for b in extra] == files
-    assert {b["x"] for b in extra} == {0}
-    assert [b["y"] for b in extra] == sorted({b["y"] for b in extra})

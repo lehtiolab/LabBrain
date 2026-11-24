@@ -8,6 +8,7 @@ import textwrap
 import yaml
 
 from .files import MAPS, join, read, write
+from .frontmatter import fm_get, split_fm
 from .links import href
 
 DATA_EXT = (".json", ".yaml", ".yml")
@@ -17,7 +18,7 @@ TITLE, DESCRIPTION, PATH, CHILDREN, LINKS = "title", "description", "path", "chi
 # Layout, in pixels. A box's height is guessed from its lines, wrapped at WRAP characters.
 WIDTH, GAP_X, GAP_Y = 400, 120, 40
 LINE, PAD, WRAP = 24, 40, 44
-LINK_COLOR = "6"  # a canvas preset colour: links stand out from the tree's own arrows
+ARROW, SEP = "→ ", " · "  # a box's links: one line, after its other lines
 
 
 class NotData(Exception):
@@ -52,6 +53,12 @@ def wiki_file(vault, p):
     return p if os.path.isfile(os.path.join(vault, p)) else None
 
 
+def link_name(vault, p):
+    """What a link to wiki file p shows: its title, else its name."""
+    title = fm_get(split_fm(read(vault, p))[0], "title") if p.endswith(".md") else None
+    return title or os.path.basename(p).removesuffix(".md")
+
+
 def show(v):
     return json.dumps(v) if v is None or isinstance(v, bool) else str(v)
 
@@ -74,9 +81,10 @@ def boxes(vault, data, title):
                 box["kids"] += [boxes(vault, c, None) for c in v]
             elif k == LINKS and isinstance(v, list):
                 for target in v:
-                    if wiki_file(vault, target):
-                        box["links"].append(wiki_file(vault, target))
-                    else:
+                    p = wiki_file(vault, target)
+                    if p and p not in dict(box["links"]):
+                        box["links"].append((p, link_name(vault, p)))
+                    elif not p:
                         box["lines"].append("links: %s" % show(target))
             elif isinstance(v, nested):
                 box["kids"].append(boxes(vault, v, k))
@@ -96,7 +104,8 @@ def boxes(vault, data, title):
 
 
 def height(box):
-    wrapped = sum(len(textwrap.wrap(t, WRAP)) or 1 for t in box["lines"])
+    names = [ARROW + SEP.join(n for _, n in box["links"])] if box["links"] else []
+    wrapped = sum(len(textwrap.wrap(s, WRAP)) or 1 for s in box["lines"] + names)
     return PAD + LINE * (wrapped + bool(box["title"]))
 
 
@@ -111,64 +120,36 @@ def place(box, depth, top):
     return span
 
 
-def sides(a, z, kind):
-    """The sides of boxes a and z that an arrow between them leaves and enters. The tree runs left
-    to right; a link leaves from the side facing its target."""
-    if kind == "link" and z["y"] >= a["y"] + a["h"]:
-        return "bottom", "top"
-    if kind == "link" and z["y"] + z["h"] <= a["y"]:
-        return "top", "bottom"
-    return ("left", "right") if z["x"] < a["x"] else ("right", "left")
-
-
 def layout(root):
-    """Every box, placed, and the arrows between them as (from, to, kind, from side, to side).
-
-    A link to a wiki file that no box shows gets a box of its own, in rows below the tree, as
-    wide as the tree.
-    """
-    y = place(root, 0, 0) + 3 * GAP_Y
+    """Every box, placed, and the tree's arrows as (parent id, child id)."""
+    place(root, 0, 0)
     placed, stack = [], [root]
     while stack:
         b = stack.pop()
         b["id"] = "n%d" % len(placed)
         placed.append(b)
         stack.extend(reversed(b["kids"]))
-    by_file = {b["file"]: b for b in placed if b["file"]}
-    loose = list(dict.fromkeys(p for b in placed for p in b["links"] if p not in by_file))
-    cols = max(b["x"] for b in placed) // (WIDTH + GAP_X) + 1
-    for start in range(0, len(loose), cols):
-        row = []
-        for n, p in enumerate(loose[start : start + cols]):
-            b = {"title": os.path.basename(p), "lines": [], "file": p, "links": [], "kids": []}
-            b.update(id="n%d" % len(placed), x=n * (WIDTH + GAP_X), y=y, h=height(b))
-            placed.append(b)
-            row.append(b)
-            by_file[p] = b
-        y += max(b["h"] for b in row) + GAP_Y
-    pairs = [(b, k, "tree") for b in placed for k in b["kids"]]
-    pairs += [
-        (b, by_file[p], "link")
-        for b in placed
-        for p in dict.fromkeys(b["links"])
-        if by_file[p] is not b
-    ]
-    return placed, [(a["id"], z["id"], kind, *sides(a, z, kind)) for a, z, kind in pairs]
+    return placed, [(b["id"], k["id"]) for b in placed for k in b["kids"]]
 
 
 def to_canvas(placed, arrows, title, out):
-    """JSON Canvas 1.0, which Obsidian opens. A box's title links to its file, if it has one: a
-    click opens it, and hovering shows it."""
+    """JSON Canvas 1.0, which Obsidian opens. A title or a link opens its file when clicked, and
+    shows it on hover."""
     nodes = []
     for b in placed:
         name = "[[%s|%s]]" % (b["file"], b["title"]) if b["file"] else b["title"]
-        text = "\n\n".join((["**%s**" % name] if name else []) + ["\n".join(b["lines"])])
+        lines = b["lines"] + (
+            [ARROW + SEP.join("[[%s|%s]]" % link for link in b["links"])] if b["links"] else []
+        )
+        text = "\n\n".join(
+            (["**%s**" % name] if name else []) + (["\n".join(lines)] if lines else [])
+        )
         node = {"id": b["id"], "type": "text", "text": text, "x": b["x"], "y": b["y"]}
         nodes.append(dict(node, width=WIDTH, height=b["h"]))
-    edges = []
-    for i, (a, z, kind, start, end) in enumerate(arrows):
-        edge = {"id": "e%d" % i, "fromNode": a, "fromSide": start, "toNode": z, "toSide": end}
-        edges.append(dict(edge, color=LINK_COLOR) if kind == "link" else edge)
+    edges = [
+        {"id": "e%d" % i, "fromNode": a, "fromSide": "right", "toNode": z, "toSide": "left"}
+        for i, (a, z) in enumerate(arrows)
+    ]
     return json.dumps({"nodes": nodes, "edges": edges}, indent="\t", ensure_ascii=False) + "\n"
 
 
@@ -185,8 +166,7 @@ body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: #f6f6f4; col
 .box.file { border-color: #5a7bd8; }
 .box p { margin: 6px 0 0; }
 svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
-.tree { stroke: #999; fill: none; stroke-width: 1.5; }
-.link { stroke: #a35bd1; fill: none; stroke-width: 1.5; stroke-dasharray: 6 4; }
+path.tree { stroke: #999; fill: none; stroke-width: 1.5; }
 </style>
 </head>
 <body>
@@ -203,40 +183,28 @@ orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#999"/></marker><
 """
 
 
-# Where an arrow meets a side, as a fraction of the box's width and height, and which way it points.
-SIDE = {
-    "right": (1, 0.5, 1, 0),
-    "left": (0, 0.5, -1, 0),
-    "top": (0.5, 0, 0, -1),
-    "bottom": (0.5, 1, 0, 1),
-}
-
-
 def to_html(placed, arrows, title, out):
-    """One page, with nothing loaded from elsewhere; a title links to its file, if it has one."""
-    by_id = {b["id"]: b for b in placed}
+    """One page, with nothing loaded from elsewhere; a title or a link leads to its file."""
+    here, by_id = os.path.dirname(out), {b["id"]: b for b in placed}
     paths = []
-    for a, z, kind, start, end in arrows:
-        (a, (fa, ga, da, ea)), (z, (fz, gz, dz, ez)) = (
-            (by_id[a], SIDE[start]),
-            (by_id[z], SIDE[end]),
-        )
-        x1, y1 = a["x"] + int(fa * WIDTH), a["y"] + int(ga * a["h"])
-        x2, y2 = z["x"] + int(fz * WIDTH), z["y"] + int(gz * z["h"])
-        bend = max(abs(y2 - y1) if ea else abs(x2 - x1), GAP_X) // 2
+    for a, z in arrows:
+        a, z = by_id[a], by_id[z]
+        x1, y1, x2, y2 = a["x"] + WIDTH, a["y"] + a["h"] // 2, z["x"], z["y"] + z["h"] // 2
+        bend = GAP_X // 2
         paths.append(
-            '<path class="%s" marker-end="url(#tip)" d="M%d,%d C%d,%d %d,%d %d,%d"/>'
-            % (kind, x1, y1, x1 + da * bend, y1 + ea * bend, x2 + dz * bend, y2 + ez * bend, x2, y2)
+            '<path class="tree" marker-end="url(#tip)" d="M%d,%d C%d,%d %d,%d %d,%d"/>'
+            % (x1, y1, x1 + bend, y1, x2 - bend, y2, x2, y2)
         )
+
+    def a(p, name):
+        return '<a href="%s">%s</a>' % (html.escape(href(p, here)), html.escape(name))
+
     divs = []
     for b in placed:
-        name = html.escape(b["title"] or "")
-        if b["file"]:
-            name = '<a href="%s">%s</a>' % (
-                html.escape(href(b["file"], os.path.dirname(out))),
-                name,
-            )
+        name = a(b["file"], b["title"]) if b["file"] else html.escape(b["title"] or "")
         lines = "".join("<p>%s</p>" % html.escape(t) for t in b["lines"])
+        if b["links"]:
+            lines += "<p>%s%s</p>" % (ARROW, SEP.join(a(p, n) for p, n in b["links"]))
         divs.append(
             '<div class="box%s" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx"><b>%s</b>%s</div>'
             % (" file" if b["file"] else "", b["x"], b["y"], WIDTH, b["h"], name, lines)

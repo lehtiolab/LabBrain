@@ -439,10 +439,10 @@ Draws each `.json`, `.yaml` or `.yml` FILE as a tree of boxes, so you can see ho
   | `description` | a line in the box, without its key |
   | `path` | when it names a file in the wiki, the title links to that file |
   | `children` | a list whose items are boxes under this one, without a `children` box between |
-  | `links` | wiki files this box links to: a coloured arrow in a canvas, a dashed one in a page. A file no box shows gets a box of its own, in rows below the tree, as wide as the tree |
+  | `links` | wiki files this box links to: one line at the end of the box, `→ Garden — Summary · Beans`, each name a link to its file. A name is the file's `title`, else its file name. There are no arrows for links: on a real wiki they tangled |
 
-A `path` or a link that isn't a file in the wiki is shown as text. In a canvas, click a title to open
-its file. In a page, the title is a link to the file.
+A `path` or a link that isn't a file in the wiki is shown as text. In a canvas, click a title or a
+link's name to open its file. In a page, they are links to the files.
 
 YAML is read with PyYAML's `safe_load`, so a file can't make labbrain run anything. A file that
 isn't JSON or YAML, doesn't exist, or doesn't parse is refused with `can't draw <file>: <why>`. Every
@@ -471,7 +471,7 @@ read.
   its `children`.
 - **`links` are what its text links to outside its own part of the tree:**
   - a link to a note becomes a link to the summary that covers the note;
-  - a link to a file no summary covers stays a link to the file, which gets a box of its own;
+  - a link to a file no summary covers stays a link to the file;
   - links to its own notes, its parent and its children are left out, since the tree shows them;
   - broken links, links inside code and web links are left out.
 

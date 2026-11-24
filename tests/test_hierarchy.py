@@ -91,6 +91,6 @@ def test_the_command(vault, monkeypatch, capsys):
         "**[[Garden/Garden_summary.md|Garden — Summary]]**",
         "**[[Garden/Soil/Soil_summary.md|Soil — Summary]]**",
         "**[[Shelf/Shelf_summary.md|Shelf — Summary]]**",
-        "**[[Kitchen/Recipes.md|Recipes.md]]**",
     ]
+    assert canvas["nodes"][1]["text"].endswith("\n→ [[Kitchen/Recipes.md|Recipes]]")
     assert '<a href="../Garden/Garden_summary.md">' in (maps / "hierarchy.html").read_text()
