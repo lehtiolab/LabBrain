@@ -104,6 +104,11 @@ to date:
 
 Only two of the nine steps call a model.
 
+This flow describes today's local job, not the full version-control agent. `labbrain commit` makes
+local commits and stops. A future queued worker is expected to compare incoming versions, coordinate
+multiple repositories, run audit and drift checks, and advance versions under an explicit policy.
+Its design and unresolved workflow choices are in [Version control agent](version-control-agent.md).
+
 ## Two ways to run a job
 - **By hand.** You bring your own LLM (Claude Code, Codex, a local model, anything that reads
   files and runs commands), load the skill for the job, such as `skills/index/SKILL.md`, and ask.

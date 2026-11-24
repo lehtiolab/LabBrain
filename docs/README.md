@@ -10,6 +10,7 @@ agents alike: an agent working on this repo can load them as they are.
 | [Writing a function](writing-a-function.md) | you're adding or changing the Python in `labbrain` |
 | [Writing a skill](writing-a-skill.md) | you're adding or changing a `SKILL.md` |
 | [Usage](usage.md) | you're running `labbrain`: every command, option, output and exit status |
+| [Version control agent](version-control-agent.md) | you're working on version control: the planned GitHub bot and wiki worker |
 | [Configuration](configuration.md) | you're setting up `env/.env` |
 
 Two files hold rules rather than explanations:
