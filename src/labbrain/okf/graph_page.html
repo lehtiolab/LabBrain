@@ -145,16 +145,17 @@ const href = id => D.fileUrl ? D.fileUrl.replace("{path}", encodeURI(id)) : D.ba
 const short = (s, k = 28) => s.length > k ? s.slice(0, k - 1) + "…" : s;
 
 // Search in the page: the headers only, as step 1 of `labbrain search`.
+const plain = s => s.toLowerCase().replace(/[-_]+/g, " ");  // "dna-storage" finds Synthetic_DNA_storage
 function meanings(query) {
-  const q = query.trim().replace(/\s+/g, " ").toLowerCase();
+  const q = plain(query).trim().replace(/\s+/g, " ");
   const names = Object.keys(D.topics).filter(n =>
-    [n, ...D.topics[n].synonyms].some(s => s.toLowerCase() === q));
+    [n, ...D.topics[n].synonyms].some(s => plain(s) === q));
   const words = new Set([q]), seen = new Set(), todo = [...names];
   while (todo.length) {
     const n = todo.pop();
     if (seen.has(n)) continue;
     seen.add(n);
-    [n, ...D.topics[n].synonyms].forEach(s => words.add(s.toLowerCase()));
+    [n, ...D.topics[n].synonyms].forEach(s => words.add(plain(s)));
     todo.push(...D.topics[n].narrower);
   }
   return [[...words], [...seen]];
@@ -164,10 +165,10 @@ function headerHits(query) {
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const alt = words.sort((a, b) => b.length - a.length).map(esc).join("|");
   const re = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${alt})`, "u");
-  const labels = new Set([...words, ...named.map(n => n.toLowerCase())]);
+  const labels = new Set([...words, ...named.map(plain)]);
   return G.nodes.filter(n =>
-    ["title", "description", "id"].some(k => re.test((n[k] || "").toLowerCase())) ||
-    [...(n.topics || []), ...(n.tags || [])].some(t => labels.has(t.toLowerCase()))
+    ["title", "description", "id"].some(k => re.test(plain(n[k] || ""))) ||
+    [...(n.topics || []), ...(n.tags || [])].some(t => labels.has(plain(t)))
   ).map(n => n.id);
 }
 

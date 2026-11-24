@@ -25,10 +25,10 @@ def by_id(result):
 
 def test_the_vocabulary_widens_a_query():
     assert meanings("Tumour", TOPICS) == (
-        ["cancer", "neo-antigen", "neoantigen", "tumour"],
+        ["cancer", "neo antigen", "neoantigen", "tumour"],  # - and _ read as spaces
         ["cancer", "neoantigen"],
     )
-    assert meanings("neoantigen", TOPICS) == (["neo-antigen", "neoantigen"], ["neoantigen"])
+    assert meanings("neoantigen", TOPICS) == (["neo antigen", "neoantigen"], ["neoantigen"])
     assert meanings("beans", TOPICS) == (["beans"], [])
 
 
@@ -41,6 +41,15 @@ def test_step_1_the_headers(vault):
     assert hits == {"Garden/Tomatoes.md": "title", "Garden/Garden_summary.md": "description"}
     assert nodes["Kitchen/Recipes.md"]["distance"] == 1
     assert found(vault, "omato")["nodes"] == []  # not from the middle of a word
+
+
+def test_hyphens_and_underscores_are_spaces(vault):
+    """Folder-named titles use underscores; topics use hyphens."""
+    (vault / "Garden" / "Seeds" / "Seed_saving_tips.md").write_text("# Seed_saving_tips\n")
+    graph, _ = build_graph(str(vault), {})
+    for query in ("seed saving", "seed-saving", "Seed_Saving"):
+        nodes = search(str(vault), graph, query, {}, depth=0)["nodes"]
+        assert [n["id"] for n in nodes if "hit" in n] == ["Garden/Seeds/Seed_saving_tips.md"], query
 
 
 def test_step_1_topics_and_tags(vault):

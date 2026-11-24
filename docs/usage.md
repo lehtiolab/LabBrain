@@ -615,7 +615,8 @@ step and stops when one finds something:
   narrower topics: with `cancer: {synonyms: [tumour], narrower: [neoantigen]}`, `tumour` finds files
   about cancer and neoantigens.
 - **A word matches from the start of a word,** in any case: `tomato` finds *Tomatoes*, but `omato`
-  finds nothing. `tags` and `topics` must match whole.
+  finds nothing. `-` and `_` count as spaces, so `dna-storage` finds *Synthetic_DNA_storage*.
+  `tags` and `topics` must match whole.
 - **Step 3 follows `link` edges only,** in both directions. A summary that covers a file found is
   added for context, but its other notes aren't.
 

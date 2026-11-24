@@ -8,17 +8,22 @@ from .files import read
 HEADER = ("title", "description", "id")  # where step 1 looks for the words, in this order
 
 
+def plain(s):
+    """Lower case, with - and _ as spaces: "dna-storage" finds Synthetic_DNA_storage."""
+    return re.sub(r"[-_]+", " ", s.lower())
+
+
 def meanings(query, topics):
     """(words, topics): the query in lower case, plus what the vocabulary says it also means: the
     synonyms of a topic it names, and its narrower topics with theirs."""
-    q = " ".join(query.split()).lower()
-    named = [n for n, t in topics.items() if q in [n.lower(), *(s.lower() for s in t["synonyms"])]]
+    q = " ".join(plain(query).split())
+    named = [n for n, t in topics.items() if q in [plain(n), *(plain(s) for s in t["synonyms"])]]
     words, seen, todo = {q}, set(), named
     while todo:
         name = todo.pop()
         if name not in seen:
             seen.add(name)
-            words |= {name.lower(), *(s.lower() for s in topics[name]["synonyms"])}
+            words |= {plain(name), *(plain(s) for s in topics[name]["synonyms"])}
             todo = todo + topics[name]["narrower"]
     return sorted(words), sorted(seen)
 
@@ -30,12 +35,12 @@ def finder(words):
 
 def header_hits(nodes, words, topics):
     """Step 1: {id: where it matched} for the files whose header names the words."""
-    find, names = finder(words), {*words, *(t.lower() for t in topics)}
+    find, names = finder(words), {*words, *(plain(t) for t in topics)}
     hits = {}
     for n in nodes:
-        where = next((k for k in HEADER if find.search(n.get(k, "").lower())), None)
+        where = next((k for k in HEADER if find.search(plain(n.get(k, "")))), None)
         if not where:
-            labels = [x.lower() for k in ("topics", "tags") for x in n.get(k, [])]
+            labels = [plain(x) for k in ("topics", "tags") for x in n.get(k, [])]
             where = next((k for k in ("topics", "tags") if names & set(labels)), None)
         if where:
             hits[n["id"]] = "path" if where == "id" else where
@@ -48,7 +53,7 @@ def text_hits(vault, nodes, words, skip):
     find, counts = finder(words), {}
     for n in nodes:
         if n["id"] not in skip:
-            k = len(find.findall(read(vault, n["id"]).lower()))
+            k = len(find.findall(plain(read(vault, n["id"]))))
             if k:
                 counts[n["id"]] = k
     return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
