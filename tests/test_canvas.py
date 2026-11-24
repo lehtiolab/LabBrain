@@ -9,7 +9,7 @@ import yaml
 from conftest import ENV
 
 from labbrain.cli import main
-from labbrain.okf.canvas import NotData, boxes, draw, load, picture_path
+from labbrain.okf.canvas import NotData, boxes, draw, layout, load, picture_path
 
 PLAN = """\
 title: Garden plan
@@ -138,3 +138,14 @@ def test_the_command(vault, plan, monkeypatch, capsys):
     usage, *drew = capsys.readouterr().out.splitlines()
     assert usage.startswith("usage: canvas FILE...")
     assert drew == ["drew _maps/Garden/%s" % f for f in ("plan.canvas", "plan.html", "plan.canvas")]
+
+
+def test_extra_boxes_wrap_to_the_width_of_the_tree(vault):
+    """Files no box shows get boxes below the tree, in rows no wider than the tree: here, one
+    column."""
+    files = ["Garden/Beans.md", "Garden/Tomatoes.md", "Kitchen/Recipes.md", "Shelf/Jars.md"]
+    placed, _ = layout(boxes(str(vault), {"title": "x", "links": files}, "x"))
+    extra = placed[1:]
+    assert [b["file"] for b in extra] == files
+    assert {b["x"] for b in extra} == {0}
+    assert [b["y"] for b in extra] == sorted({b["y"] for b in extra})

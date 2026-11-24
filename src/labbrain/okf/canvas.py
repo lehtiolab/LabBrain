@@ -124,9 +124,10 @@ def sides(a, z, kind):
 def layout(root):
     """Every box, placed, and the arrows between them as (from, to, kind, from side, to side).
 
-    A link to a wiki file that no box shows gets a box of its own, in a row below the tree.
+    A link to a wiki file that no box shows gets a box of its own, in rows below the tree, as
+    wide as the tree.
     """
-    tall = place(root, 0, 0)
+    y = place(root, 0, 0) + 3 * GAP_Y
     placed, stack = [], [root]
     while stack:
         b = stack.pop()
@@ -134,12 +135,17 @@ def layout(root):
         placed.append(b)
         stack.extend(reversed(b["kids"]))
     by_file = {b["file"]: b for b in placed if b["file"]}
-    loose = dict.fromkeys(p for b in placed for p in b["links"] if p not in by_file)
-    for n, p in enumerate(loose):
-        b = {"title": os.path.basename(p), "lines": [], "file": p, "links": [], "kids": []}
-        b.update(id="n%d" % len(placed), x=n * (WIDTH + GAP_X), y=tall + 3 * GAP_Y, h=height(b))
-        placed.append(b)
-        by_file[p] = b
+    loose = list(dict.fromkeys(p for b in placed for p in b["links"] if p not in by_file))
+    cols = max(b["x"] for b in placed) // (WIDTH + GAP_X) + 1
+    for start in range(0, len(loose), cols):
+        row = []
+        for n, p in enumerate(loose[start : start + cols]):
+            b = {"title": os.path.basename(p), "lines": [], "file": p, "links": [], "kids": []}
+            b.update(id="n%d" % len(placed), x=n * (WIDTH + GAP_X), y=y, h=height(b))
+            placed.append(b)
+            row.append(b)
+            by_file[p] = b
+        y += max(b["h"] for b in row) + GAP_Y
     pairs = [(b, k, "tree") for b in placed for k in b["kids"]]
     pairs += [
         (b, by_file[p], "link")

@@ -439,7 +439,7 @@ Draws each `.json`, `.yaml` or `.yml` FILE as a tree of boxes, so you can see ho
   | `description` | a line in the box, without its key |
   | `path` | when it names a file in the wiki, the title links to that file |
   | `children` | a list whose items are boxes under this one, without a `children` box between |
-  | `links` | wiki files this box links to: a coloured arrow in a canvas, a dashed one in a page. A file no box shows gets a box of its own, below the tree |
+  | `links` | wiki files this box links to: a coloured arrow in a canvas, a dashed one in a page. A file no box shows gets a box of its own, in rows below the tree, as wide as the tree |
 
 A `path` or a link that isn't a file in the wiki is shown as text. In a canvas, click a title to open
 its file. In a page, the title is a link to the file.
