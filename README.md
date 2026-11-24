@@ -68,6 +68,7 @@ the wiki, run `pixi run --manifest-path <LabBrain>/pixi.toml labbrain <command>`
 | `labbrain canvas FILE...` | draws a JSON or YAML file as a tree of boxes, as an Obsidian canvas or a web page, in `_maps/` |
 | `labbrain graph` | brings the wiki's graph up to date in `_maps/graph.json`, and draws a page to explore it in any browser |
 | `labbrain search WORD...` | finds files by their headers, then their text, then the links around them, with code only |
+| `labbrain topics --by ACTOR FILE TOPIC...` | sets a file's topics from the wiki's vocabulary; a raw note only with its author's consent |
 | `labbrain hierarchy [FOLDER...]` | writes the folder summaries, of the whole wiki or of each FOLDER, as one tree with the links between them, to `_maps/`, and draws it |
 
 ## Skills

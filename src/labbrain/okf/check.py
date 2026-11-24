@@ -4,14 +4,15 @@ import os
 import re
 
 from .files import is_repo_root, join, md_files, read
-from .frontmatter import fm_blocks, fm_drift, fm_get, split_fm
+from .frontmatter import fm_blocks, fm_drift, fm_get, fm_list, split_fm
 from .index import build_indexes, index_targets
 from .links import link_problems
 from .notes import agent_files
 from .summaries import staleness, summaries
 
 
-def check(vault):
+def check(vault, topics):
+    """Every problem in the wiki, as (path, message); topics is the wiki's vocabulary."""
     problems = []
     for p in md_files(vault):
         base = os.path.basename(p)
@@ -36,6 +37,9 @@ def check(vault):
             problems.append((p, "no frontmatter (run: frontmatter)"))
         elif not fm_get(fm, "type"):
             problems.append((p, "frontmatter has no type (run: frontmatter)"))
+        unknown = [t for t in fm_list(fm, "topics") if t not in topics]
+        if unknown:
+            problems.append((p, "topics not in topics.yaml: " + ", ".join(unknown)))
     for s in summaries(vault):
         for kind, detail in staleness(vault, s):
             problems.append((s, "stale: %s %s" % (kind, detail)))

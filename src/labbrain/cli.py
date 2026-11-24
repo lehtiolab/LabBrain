@@ -25,6 +25,7 @@ from .okf.notes import add_frontmatter
 from .okf.page import graph_page
 from .okf.search import search, slug
 from .okf.summaries import staleness, stamp, summaries, summary_in
+from .okf.topics import NoTopicsHere, NotTopics, canonical, set_topics
 
 COMMANDS = {
     "check": "Everything below; exit status 1 if anything is off.",
@@ -58,6 +59,10 @@ COMMANDS = {
     "path, tags, topics, with the wiki's vocabulary), then, if nothing is found or with --text, "
     "their full text; then the files linked to them, up to --depth away. No model. Writes what "
     "it found, as a graph, to _maps/search/<words>.json, and a page that opens on it.",
+    "topics": "Set FILE's topics, from the wiki's vocabulary in topics.yaml (a synonym names its "
+    "topic): on a summary or another agent-written file, or on a raw note whose author allows it "
+    "(annotate: true), recording ACTOR in its annotated entry. Refuses a word that names no topic, "
+    "and writes nothing then.",
 }
 
 
@@ -178,6 +183,11 @@ def parser():
     cmds["links"].add_argument("files", nargs="*", metavar="FILE")
     cmds["canvas"].add_argument("files", nargs="*", metavar="FILE")
     cmds["hierarchy"].add_argument("files", nargs="*", metavar="FOLDER")
+    cmds["topics"].add_argument(
+        "--by", metavar="ACTOR", help="who chose them, e.g. claude-code/claude-opus-5-5"
+    )
+    cmds["topics"].add_argument("files", nargs=1, metavar="FILE")
+    cmds["topics"].add_argument("topic", nargs="+", metavar="TOPIC")
     cmds["search"].add_argument("query", nargs="+", metavar="WORD")
     cmds["search"].add_argument(
         "--depth", type=int, default=1, help="follow links this far from each hit (default 1)"
@@ -237,7 +247,7 @@ def main(argv=None):
         return 2
 
     if cmd == "check":
-        problems = check(vault)
+        problems = check(vault, wiki.topics)
         for p, msg in problems:
             print("%s: %s" % (p, msg))
         print(
@@ -452,6 +462,20 @@ def main(argv=None):
         }
         page = graph_page(graph, out + ".html", wiki.hidden, wiki.file_url, wiki.topics, start)
         print("drew", save(vault, out + ".html", page))
+        return 0
+    if cmd == "topics":
+        if not args.by or "@" in args.by:
+            print("usage: topics --by ACTOR FILE TOPIC...   (an actor, never an email address)")
+            return 2
+        try:
+            names = canonical(args.topic, wiki.topics)
+            changed = set_topics(vault, rest[0], names, args.by)
+        except (NotTopics, NoTopicsHere) as e:
+            print(e)
+            return 2
+        print(
+            "%s %s: %s" % ("set topics of" if changed else "unchanged:", rest[0], ", ".join(names))
+        )
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:

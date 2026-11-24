@@ -51,6 +51,12 @@ or one with a single note, stays covered by its parent's summary.
 When you have finished writing, run `labbrain stamp --by <your actor> <summary>`. It records the
 sources and their hashes, which you never write by hand.
 
+If the wiki has a vocabulary (`topics.yaml` at its root), set the summary's topics: the topics the
+summary's own text is about, at most five, the most specific that fit. Run
+`labbrain topics --by <your actor> <summary> <topic>...`; it refuses a word that isn't in the
+vocabulary. Never invent a topic: if none fits, say which words the summary would need, for a
+person to add.
+
 ## Carrying changes up
 When a rebuild changes a summary's description, or what it says about the folder's state, update
 the lines about that folder in its parent summary, and so on up to the repo root. If a parent's own

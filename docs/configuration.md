@@ -45,8 +45,8 @@ changes to the wrong wiki.
   for a note, add or remove `annotate: true` in its header by hand.
 - **A note signed as someone else** (`frontmatter --by human:ali`) never gets your answer.
 - What an agent adds is recorded in the note's `annotated` key (see the
-  [okf-conventions](../skills/okf-conventions/SKILL.md) skill). No labbrain command adds agent
-  metadata yet.
+  [okf-conventions](../skills/okf-conventions/SKILL.md) skill). Today that is only `topics`, written
+  by [`labbrain topics`](usage.md#labbrain-topics).
 
 **`LABBRAIN_VIEW`** is only how you like to look at pictures, so it changes nothing in the wiki.
 `--view` overrides it for one run (see [labbrain canvas](usage.md#labbrain-canvas)).

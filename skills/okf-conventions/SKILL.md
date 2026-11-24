@@ -49,8 +49,9 @@ A note's header can carry metadata for agents, such as a `description`, but only
   annotated:
     - { by: <actor>, at: <YYYY-MM-DDTHH:MM:SSZ>, keys: [description] }
   ```
-- **No labbrain command writes agent metadata yet,** so don't add any by hand. Like the rest of the
-  bookkeeping, it will be written by code, with the model supplying only the value.
+- **Agent metadata is written by code, with the model supplying only the value.** Never add any
+  by hand. `labbrain topics` writes `topics` and its `annotated` entry, and refuses a note without
+  `annotate: true`. No command writes other agent metadata yet.
 
 ## Folder summaries
 There is one summary per folder with real content. It is named `<Folder>_summary.md` and lives in
@@ -77,8 +78,10 @@ sources:                         # every file it was built from, with its git bl
   `labbrain stamp --by <actor> <summary>`: it lists the sources, hashes them, and sets `generated`,
   `parent` and `children`. Never fill these in by hand.
 - **`topics`,** optional, lists what the summary is about, from the wiki's vocabulary in
-  `topics.yaml`: `topics: [proteomics, normalization]`. A topic that isn't in the vocabulary is a
-  proposal for a person, not a value to write. The graph and search read it.
+  `topics.yaml`: `topics: [proteomics, normalization]`. Set it with
+  `labbrain topics --by <actor> <summary> <topic>...`, never by hand. A topic that isn't in the
+  vocabulary is a proposal for a person, not a value to write; `labbrain check` flags one. The
+  graph and search read it.
 - **`sources`** are every text file in the folder, plus the files in subfolders that have no summary
   of their own. They never include the summary itself, `index.md` or `log.md`.
 - **Why a hash:** it is the git blob id. `git cat-file -p <hash>`, run in the owning repo, prints the
@@ -143,6 +146,7 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain canvas FILE...` | draws JSON or YAML files as trees of boxes | pictures in `_maps/` only |
 | `labbrain graph` | the wiki's graph, a cache rebuilt from changed files | `_maps/` only |
 | `labbrain search WORD... [--depth N] [--text]` | files by header, then text, then links; code only | `_maps/` only |
+| `labbrain topics --by ACTOR FILE TOPIC...` | sets a file's topics from the vocabulary; a raw note only with its author's consent | `topics`, and a note's `annotated` |
 | `labbrain hierarchy [FOLDER...]` | the summaries, of the wiki or of each FOLDER, as one tree with their links, and its picture | `_maps/` only |
 
 ## Running labbrain

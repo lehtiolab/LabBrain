@@ -20,6 +20,7 @@ CANON = [
     "description",
     "resource",
     "tags",
+    "topics",
     "status",
     "stale_after",
     "generated",

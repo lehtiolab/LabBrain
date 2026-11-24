@@ -48,7 +48,7 @@ that doesn't exist, it prints `no such folder: DIR` and exits with 2.
 the wiki without `--vault`.
 
 ## File arguments
-`stamp`, `links`, `drift-stamp` and `canvas` take file paths, and `hierarchy` takes folders.
+`stamp`, `links`, `drift-stamp`, `canvas` and `topics` take file paths, and `hierarchy` takes folders.
 - **They are relative to where you run the command,** like any shell command, not to the wiki's
   root. From the root you write `Garden/Garden_summary.md`; from inside `Garden/`, `Garden_summary.md`.
   Absolute paths work too.
@@ -57,7 +57,7 @@ the wiki without `--vault`.
   before it that were fine.
 
 ## Actors: `--by`
-`stamp`, `drift-stamp` and `frontmatter` write who did the work into the files they change:
+`stamp`, `drift-stamp`, `frontmatter` and `topics` write who did the work into the files they change:
 - **an agent,** as `<tool>/<model>`: `claude-code/claude-opus-5-5`, `open-llm/qwen3-235b`;
 - **a person,** as `human:<name>`: `human:ada`.
 
@@ -89,6 +89,7 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`hierarchy`](#labbrain-hierarchy) | `_maps/hierarchy.yaml` and its picture |
 | [`graph`](#labbrain-graph) | `_maps/graph.json`, the wiki's graph |
 | [`search`](#labbrain-search) | the graph, and what it found in `_maps/search/` |
+| [`topics`](#labbrain-topics) | a file's `topics`, and on a raw note its `annotated` entry |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -111,6 +112,7 @@ and exits with 0, or with `N problem(s).` and exits with 1.
 | `out of date (run: index)` | an `index.md` differs from what `index` would write | `labbrain index` |
 | `wikilink [[…]] (run: links)` | a `[[wikilink]]`, in any file | `labbrain links` |
 | `broken <link>` | a relative link to a file that doesn't exist, in an agent-written file | fix the link |
+| `topics not in topics.yaml: …` | a header's `topics` names something the wiki's vocabulary doesn't have | `labbrain topics` with topics from the vocabulary, or add the topic to `topics.yaml` by review |
 
 Broken links are only reported in agent-written files (summaries, agent guides, session summaries,
 paper concepts and `index.md`). A raw note may link to a note that hasn't been written yet.
@@ -647,6 +649,36 @@ and the summaries over them: 1 file(s)
   Shelf/Shelf_summary.md — Shelf — Summary
 wrote _maps/search/brine.json
 drew _maps/search/brine.html
+```
+
+### labbrain topics
+```
+labbrain topics --by ACTOR FILE TOPIC... [--vault DIR]
+```
+Sets FILE's `topics` to the TOPICs, from the wiki's vocabulary in `topics.yaml` (see
+[the wiki's own config](configuration.md#the-wikis-own-config)). A model chooses the topics; this
+command checks them and writes them, so a model never edits a header by hand.
+- **Each TOPIC must name a topic,** itself or by one of its synonyms, in any case: with
+  `cancer: {synonyms: [tumour]}`, `Tumour` writes `cancer`. If any word names no topic, it prints
+  `not in topics.yaml: …`, exits with 2 and writes nothing: a new topic is for a person to add.
+- **It replaces the file's topics** with these, in this order. The same topics again change nothing.
+- **Which files:**
+
+  | FILE | what is written |
+  |---|---|
+  | a folder summary | `topics`, in the summary's key order |
+  | another agent-written file (session summary, agent guide, paper concept) | `topics` |
+  | a raw note whose header says `annotate: true` | `topics`, after the author's own keys, and ACTOR's entry in `annotated` |
+  | a raw note without it, `index.md`, `log.md`, a file without a header | nothing: it refuses, and exits with 2 |
+
+  A raw note's text is never touched, only its header.
+- **ACTOR** is who chose the topics, as for `stamp`; never an email address.
+
+```
+$ labbrain topics --by claude-code/claude-opus-5-5 Garden/Garden_summary.md beds veg
+set topics of Garden/Garden_summary.md: garden, vegetables
+$ labbrain topics --by claude-code/claude-opus-5-5 Garden/Garden_summary.md compost
+not in topics.yaml: compost (nothing was written; propose them to a person)
 ```
 
 ## Common sequences
