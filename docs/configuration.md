@@ -1,7 +1,10 @@
 # Configuration
 
-Settings about you, not about the wiki, go in `env/.env`. labbrain works without any of them; they
-save you typing the same thing on every run.
+There are two levels:
+- **your settings,** about you, in `env/.env`. labbrain works without any of them; they save you
+  typing the same thing on every run;
+- **the wiki's config,** rules for everyone who works on the wiki, in `labbrain.yaml` and
+  `topics.yaml` at its root (see [The wiki's own config](#the-wikis-own-config)).
 
 ## Setting up
 ```sh
@@ -82,7 +85,43 @@ Names that don't start with `LABBRAIN_` are ignored, so the file can hold other 
   work, and a default would be wrong the first time you switched tools.
 - **`hot`'s thresholds** (`--days`, `--min`, `--recheck`) **and the note types.** These are rules for
   the whole wiki. If each person set their own, "checked for drift" would mean something different
-  depending on who ran the check. Change them for one run with the options.
+  depending on who ran the check. Change them for one run with the options. *(They may move to the
+  wiki's config.)*
+
+## The wiki's own config
+Rules for everyone who works on the wiki go in two files at its root, committed with the wiki and
+changed by review, like code. Both are optional. labbrain reads them once per run; no summary covers
+them, and no `index.md` lists them.
+
+**`labbrain.yaml`:**
+```yaml
+graph:
+  hidden: [Session Summary, Daily Recap]   # note types the graph page starts with hidden
+  file_url: https://git.example.org/lab/wiki/-/blob/main/{path}
+```
+- **`graph.hidden`:** note types the [graph page](usage.md#labbrain-graph) starts with switched off.
+  Anyone can switch them back on.
+- **`graph.file_url`:** where the graph page's links lead, with `{path}` standing for the file's path
+  in the wiki, so the page works for people who open it from a server without a copy of the wiki.
+  Without it, the links are relative to the page.
+
+**`topics.yaml`:** the wiki's vocabulary, one key per topic.
+```yaml
+cancer:
+  synonyms: [tumour, tumor, oncology]
+  narrower: [neoantigen]
+neoantigen:
+```
+- **`synonyms`:** other words for the topic. A search for any of them finds the topic.
+- **`narrower`:** more specific topics, each a key of the file. A search for `cancer` also finds
+  `neoantigen`, but not the other way round.
+
+Summaries carry the topics they cover as `topics: [cancer]` in their frontmatter (see the
+[okf-conventions](../skills/okf-conventions/SKILL.md) skill).
+
+**Mistakes it refuses:** a key labbrain doesn't know, a value of the wrong kind, a `file_url` without
+`{path}`, a narrower topic that isn't in the file, or a file that isn't valid YAML. Every command
+then prints `bad wiki config in <file>: …` and exits with 2.
 
 ## Coming later
 With the code that calls a model (`llm()`), the settings file will also hold:

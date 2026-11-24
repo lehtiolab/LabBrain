@@ -37,6 +37,7 @@ jobs will run unattended at night.
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
 | `labbrain.okf.canvas`, `.hierarchy` | pictures of JSON and YAML data in `_maps/` (an Obsidian canvas or a web page), and the summaries as one tree to draw | experimental: being tried out |
 | `labbrain.cli` | `labbrain <command>`, 10 commands; reads the settings | works |
+| `labbrain.okf.config` | the wiki's own config: `labbrain.yaml` and `topics.yaml` at its root | works |
 | `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`, `LABBRAIN_VIEW`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
 | `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift`; `canvas` | first versions; `canvas` experimental |
@@ -92,7 +93,8 @@ skills and patterns come back here by pull request; raw traces never do.
     - `links` removes `drift_verification` when it drops the last record, instead of leaving the
       key empty;
     - nothing looks inside `_maps/` at the root of the wiki or of a repo in it, where labbrain
-      draws its pictures;
+      draws its pictures, nor at `labbrain.yaml` and `topics.yaml` at the wiki root;
+    - a bad wiki config stops every command;
     - argparse handles usage and help.
 
 ---
@@ -113,8 +115,10 @@ from arguments and the environment: never hardcode URLs, keys, paths or people. 
 **A function is a capsule: everything it needs is in its arguments.**
 - Configuration is read once, at the edge (`cli.py`), and passed down. Nothing below it reads
   `os.environ` or `env/.env`.
-- **Settings are about the person, never the wiki.** A wiki-wide rule (thresholds, note types) is
-  not a setting: it would mean different things depending on who ran the job.
+- **Two levels of configuration.** A person's settings (`env/.env`) are about the person. A rule for
+  the whole wiki goes in `labbrain.yaml` or `topics.yaml` at the wiki root, committed and the same
+  for everyone; no setting overrides it, or it would mean different things depending on who ran the
+  job. Both are read once, in `cli.py`, and passed down field by field.
 - **A long signature beats a config object.** Nine named arguments are honest; a bag hides which
   fields are used.
 - **The tell is untestability.** A function that reads its own module can only be tested by patching.

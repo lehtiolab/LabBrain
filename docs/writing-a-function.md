@@ -19,6 +19,7 @@ There is one module per subject, in `src/labbrain/okf/`:
 
 | module | holds |
 |---|---|
+| `config.py` | the wiki's own config: `labbrain.yaml` and `topics.yaml` |
 | `files.py` | reading, writing and walking the wiki's files; which files count as text |
 | `frontmatter.py` | the hand-written frontmatter parser and writer |
 | `git.py` | every call to git: blob hashes, history, the repos inside the wiki |

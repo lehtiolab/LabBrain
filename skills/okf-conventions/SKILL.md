@@ -86,7 +86,7 @@ sources:                         # every file it was built from, with its git bl
 - **Human review** is OKF's `verified: { by: human:<name>, at: <time> }`. A `verified.at` older than
   `generated.at` means the review predates the current text.
 
-## index.md, log.md and _maps/ (reserved names)
+## index.md, log.md, _maps/ and the wiki's config (reserved names)
 - **`index.md`** exists in every folder that has notes. It lists the folder's summary, notes,
   subfolders and other files, each with a one-line description.
   - `labbrain index` generates the listing: never edit it by hand.
@@ -101,6 +101,9 @@ sources:                         # every file it was built from, with its git bl
 - **`_maps/`** at the root of the wiki, or of a git repo in it, holds the pictures labbrain draws. Git ignores it, labbrain never
   reads it, and nothing in it is part of the wiki: no summary covers it and no listing shows it.
   Never write there by hand.
+- **`labbrain.yaml` and `topics.yaml`** at the wiki root are the wiki's own config: rules and the
+  topic vocabulary, the same for everyone. They are committed and changed by review. No summary
+  covers them and no listing shows them. An agent proposes changes to them; it never makes them.
 
 ## Drift verification
 A summary can be current by hash and still say something its notes no longer say. The `drift`

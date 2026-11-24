@@ -70,7 +70,7 @@ actor must name the model that actually did the work. `frontmatter` falls back t
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
 | 1 | `check` found problems, `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
-| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, a `hierarchy` folder that isn't one, or a bad setting. Nothing was written |
+| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, a `hierarchy` folder that isn't one, a bad setting, or a bad wiki config. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
 
@@ -145,8 +145,8 @@ It ends with `N stale summary(ies).` and exits with 1 if N isn't 0.
 **What a summary covers:** every text file in its folder (`.md`, `.canvas`, `.sh`, `.nix`, `.lock`,
 `.txt`, `.py`, `.json`, `.yaml`, `.yml`, `.toml`), and those in subfolders without a summary of their
 own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, anything in
-another git repo, and `_maps/` at the root of the wiki or of any git repo in it, where labbrain draws
-its pictures. Images and data files are attachments, not sources.
+another git repo, `_maps/` at the root of the wiki or of any git repo in it, where labbrain draws
+its pictures, and the wiki's own config, `labbrain.yaml` and `topics.yaml` at its root. Images and data files are attachments, not sources.
 
 The hash is taken of the file on disk, so uncommitted edits count.
 

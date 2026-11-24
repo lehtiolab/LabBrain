@@ -12,6 +12,7 @@ from dotenv import dotenv_values
 
 from .okf.canvas import VIEWS, NotData, draw
 from .okf.check import check
+from .okf.config import BadWikiConfig, wiki_config
 from .okf.drift import RECHECK, drift_stamp, hot, is_due
 from .okf.files import RESERVED, md_files, read, text_files, write
 from .okf.frontmatter import content_hash, fm_get, split_fm
@@ -205,6 +206,11 @@ def main(argv=None):
         print("no such folder:", vault)
         return 2
     vault = os.path.abspath(vault)
+    try:  # a bad wiki config stops every command, before anything is written
+        wiki_config(vault)
+    except BadWikiConfig as e:
+        print(e)
+        return 2
     cmd = args.cmd
     try:  # all of them before any command writes anything
         rest = [rel_arg(vault, p) for p in getattr(args, "files", [])]
