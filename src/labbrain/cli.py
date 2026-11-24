@@ -10,18 +10,19 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-from .okf.canvas import VIEWS, NotData, draw
+from .okf.canvas import VIEWS, NotData, draw, save
 from .okf.check import check
 from .okf.config import BadWikiConfig, wiki_config
 from .okf.drift import RECHECK, drift_stamp, hot, is_due
-from .okf.files import RESERVED, md_files, read, text_files, write
+from .okf.files import MAPS, RESERVED, join, md_files, read, text_files, write
 from .okf.frontmatter import content_hash, fm_get, split_fm
 from .okf.git import git_hashes
-from .okf.graph import GRAPH, write_graph
+from .okf.graph import GRAPH, dump, write_graph
 from .okf.hierarchy import write_hierarchy
 from .okf.index import OKF_VERSION, build_indexes
 from .okf.links import carry_hashes, convert_links, name_index
 from .okf.notes import add_frontmatter
+from .okf.search import search, slug
 from .okf.summaries import staleness, stamp, summaries, summary_in
 
 COMMANDS = {
@@ -51,6 +52,10 @@ COMMANDS = {
     "graph": "Bring the wiki's graph up to date in _maps/graph.json: each markdown file a node; "
     "the links, the notes each summary covers, and the summaries under each summary the edges. "
     "Reads only the files that changed since the last build.",
+    "search": "Find the files about WORD..., cheapest first: their headers (title, description, "
+    "path, tags, topics, with the wiki's vocabulary), then, if nothing is found or with --text, "
+    "their full text; then the files linked to them, up to --depth away. No model. Writes what "
+    "it found, as a graph, to _maps/search/<words>.json.",
 }
 
 
@@ -171,6 +176,13 @@ def parser():
     cmds["links"].add_argument("files", nargs="*", metavar="FILE")
     cmds["canvas"].add_argument("files", nargs="*", metavar="FILE")
     cmds["hierarchy"].add_argument("files", nargs="*", metavar="FOLDER")
+    cmds["search"].add_argument("query", nargs="+", metavar="WORD")
+    cmds["search"].add_argument(
+        "--depth", type=int, default=1, help="follow links this far from each hit (default 1)"
+    )
+    cmds["search"].add_argument(
+        "--text", action="store_true", help="search the full text too, even if headers match"
+    )
     for name in ("canvas", "hierarchy"):
         cmds[name].add_argument(
             "--view", choices=VIEWS, help="canvas or html (default: LABBRAIN_VIEW, else canvas)"
@@ -211,7 +223,7 @@ def main(argv=None):
         return 2
     vault = os.path.abspath(vault)
     try:  # a bad wiki config stops every command, before anything is written
-        wiki_config(vault)
+        wiki = wiki_config(vault)
     except BadWikiConfig as e:
         print(e)
         return 2
@@ -387,6 +399,46 @@ def main(argv=None):
                 fresh,
             )
         )
+        return 0
+    if cmd == "search":
+        if args.depth < 0:
+            print("usage: search WORD... [--depth N]   (N is 0 or more)")
+            return 2
+        query = " ".join(args.query)
+        graph, _ = write_graph(vault)
+        found = search(vault, graph, query, wiki.topics, args.depth, args.text)
+        how = found["filter"]
+        named = " (topics: %s)" % ", ".join(how["topics"]) if how["topics"] else ""
+        print("looked for: %s%s" % (", ".join(how["words"]), named))
+        nodes = found["nodes"]
+        if not any("hit" in n for n in nodes):
+            print("nothing found")
+            return 1
+        groups = [  # (heading, files, why each is there)
+            (
+                "step 1, the headers",
+                [n for n in nodes if n.get("hit", "text") != "text"],
+                "%(hit)s",
+            ),
+            ("step 2, the full text", [n for n in nodes if n.get("hit") == "text"], "%(matches)d"),
+            (
+                "step 3, linked up to %d away" % args.depth,
+                [n for n in nodes if "distance" in n],
+                "%(distance)d away",
+            ),
+            ("and the summaries over them", [n for n in nodes if "context" in n], ""),
+        ]
+        groups[1][1].sort(key=lambda n: -n["matches"])
+        groups[2][1].sort(key=lambda n: n["distance"])
+        for heading, group, why in groups:
+            if group:
+                print("%s: %d file(s)" % (heading, len(group)))
+            for n in group:
+                note = "  (%s)" % (why % n) if why else ""
+                if why == "%(matches)d":
+                    note = "  (%d match%s)" % (n["matches"], "es" if n["matches"] > 1 else "")
+                print("  %s — %s%s" % (n["id"], n["title"], note))
+        print("wrote", save(vault, join(MAPS, "search", slug(query) + ".json"), dump(found)))
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:

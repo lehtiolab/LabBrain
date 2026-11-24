@@ -142,6 +142,7 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check | summaries' `drift_verification` |
 | `labbrain canvas FILE...` | draws JSON or YAML files as trees of boxes | pictures in `_maps/` only |
 | `labbrain graph` | the wiki's graph, a cache rebuilt from changed files | `_maps/` only |
+| `labbrain search WORD... [--depth N] [--text]` | files by header, then text, then links; code only | `_maps/` only |
 | `labbrain hierarchy [FOLDER...]` | the summaries, of the wiki or of each FOLDER, as one tree with their links, and its picture | `_maps/` only |
 
 ## Running labbrain

@@ -69,7 +69,7 @@ actor must name the model that actually did the work. `frontmatter` falls back t
 | status | means |
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
-| 1 | `check` found problems, `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
+| 1 | `check` found problems, `stale` found stale summaries, `drift-stamp` was named a file that isn't a summary, or `search` found nothing |
 | 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, a `hierarchy` folder that isn't one, a bad setting, or a bad wiki config. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
@@ -88,6 +88,7 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`canvas`](#labbrain-canvas) | pictures in `_maps/`, which git ignores |
 | [`hierarchy`](#labbrain-hierarchy) | `_maps/hierarchy.yaml` and its picture |
 | [`graph`](#labbrain-graph) | `_maps/graph.json`, the wiki's graph |
+| [`search`](#labbrain-search) | the graph, and what it found in `_maps/search/` |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -565,6 +566,60 @@ $ labbrain graph
 wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 13 file(s) read, the rest unchanged
 $ labbrain graph
 wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 0 file(s) read, the rest unchanged
+```
+
+### labbrain search
+```
+labbrain search WORD... [--depth N] [--text] [--vault DIR]
+```
+Finds the files about WORD..., taken together as one phrase, with code only: no model reads
+anything. It brings [the graph](#labbrain-graph) up to date first, then climbs from the cheapest
+step and stops when one finds something:
+
+| step | looks at | reads files |
+|---|---|---|
+| 1. the headers | each file's title, description, path, `tags` and `topics` | no: they are in the graph |
+| 2. the full text | each file's text; only if step 1 found nothing, or with `--text` | yes |
+| 3. the links | the files linked to or from what was found, up to `--depth` away (default 1), and the summaries that cover them | no |
+
+- **The wiki's vocabulary widens the words** (see [the wiki's own config](configuration.md#the-wikis-own-config)).
+  A word that names a topic, or one of its synonyms, also finds the topic's other synonyms and its
+  narrower topics: with `cancer: {synonyms: [tumour], narrower: [neoantigen]}`, `tumour` finds files
+  about cancer and neoantigens.
+- **A word matches from the start of a word,** in any case: `tomato` finds *Tomatoes*, but `omato`
+  finds nothing. `tags` and `topics` must match whole.
+- **Step 3 follows `link` edges only,** in both directions. A summary that covers a file found is
+  added for context, but its other notes aren't.
+
+It prints the files by step, with why each is there, then writes what it found to
+`_maps/search/<words>.json`, in the graph's own format plus a `filter` that records the query, the
+words searched, the topics they named, the depth and the last step that found something. A hit has
+`hit` (where it matched, or `text` with `matches`), a linked file has `distance`, and a summary
+added for context has `context`. It exits with 1 if nothing was found.
+
+```
+$ labbrain search tomato
+looked for: tomato
+step 1, the headers: 2 file(s)
+  Garden/Garden_summary.md — Garden — Summary  (description)
+  Garden/Tomatoes.md — Tomatoes  (title)
+step 3, linked up to 1 away: 6 file(s)
+  Garden/Beans.md — Beans  (1 away)
+  Garden/Seeds/Pumpkin.md — Pumpkin  (1 away)
+  Garden/Soil/Soil_summary.md — Soil — Summary  (1 away)
+  Kitchen/Recipes.md — Recipes  (1 away)
+  Kitchen/Session_2026-01-05.md — Planning session  (1 away)
+  Kitchen/Spice rack.md — Spice rack  (1 away)
+wrote _maps/search/tomato.json
+$ labbrain search brine
+looked for: brine
+step 2, the full text: 1 file(s)
+  Kitchen/Pickling.md — Pickling  (3 matches)
+step 3, linked up to 1 away: 1 file(s)
+  Shelf/Jars.md — Jars  (1 away)
+and the summaries over them: 1 file(s)
+  Shelf/Shelf_summary.md — Shelf — Summary
+wrote _maps/search/brine.json
 ```
 
 ## Common sequences
