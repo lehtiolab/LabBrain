@@ -48,7 +48,7 @@ that doesn't exist, it prints `no such folder: DIR` and exits with 2.
 the wiki without `--vault`.
 
 ## File arguments
-`stamp`, `links`, `drift-stamp` and `canvas` take file paths.
+`stamp`, `links`, `drift-stamp` and `canvas` take file paths, and `hierarchy` takes folders.
 - **They are relative to where you run the command,** like any shell command, not to the wiki's
   root. From the root you write `Garden/Garden_summary.md`; from inside `Garden/`, `Garden_summary.md`.
   Absolute paths work too.
@@ -70,7 +70,7 @@ actor must name the model that actually did the work. `frontmatter` falls back t
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
 | 1 | `check` found problems, `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
-| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, or a bad setting. Nothing was written |
+| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, a `hierarchy` folder that isn't one, or a bad setting. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
 
@@ -461,19 +461,31 @@ can't draw Garden/Tomatoes.md: not a .json, .yaml or .yml file
 
 ### labbrain hierarchy
 ```
-labbrain hierarchy [--view canvas|html] [--vault DIR]
+labbrain hierarchy [FOLDER...] [--view canvas|html] [--vault DIR]
 ```
-Writes the folder summaries as one tree to `_maps/hierarchy.yaml`, then draws it beside, as
-[`canvas`](#labbrain-canvas) does: `_maps/hierarchy.canvas` or `_maps/hierarchy.html`. Both are
-rewritten on every run. It reads only the summaries' frontmatter and links: no model, and no note is
-read.
-- **The root is the wiki,** named after its folder, with its root `index.md` as its `path`.
+Writes the folder summaries in each FOLDER as one tree, then draws it beside, as
+[`canvas`](#labbrain-canvas) does. With no FOLDER, it draws the whole wiki.
+
+| FOLDER | writes |
+|---|---|
+| none | `_maps/hierarchy.yaml`, and `_maps/hierarchy.canvas` or `.html` |
+| `Garden` | `_maps/Garden/hierarchy.yaml`, and `_maps/Garden/hierarchy.canvas` or `.html` |
+
+Each is rewritten on every run. A FOLDER is relative to where you run the command, like a file
+argument: from inside `Garden/`, `labbrain hierarchy .` draws `Garden`. A FOLDER that doesn't exist
+is refused with `not a folder: <folder>`, and nothing is written. It reads only the summaries'
+frontmatter and links: no model, and no note is read.
 - **Each summary sits under the summary of the folder above it,** as `stamp` would record its
-  `parent`. The top summary of each git repo in the wiki sits under the root.
+  `parent`.
+- **The top of the tree** is FOLDER's own summary, when every other summary in FOLDER sits under
+  it. Otherwise it is the folder itself, titled with its name, with its `index.md` as its `path`.
+  For the whole wiki that is usually the wiki, because the top summary of each git repo in it has
+  no parent.
 - **Each summary has** its `title`, its `path`, its `description` if it has one, its `links` and
   its `children`.
 - **`links` are what its text links to outside its own part of the tree:**
-  - a link to a note becomes a link to the summary that covers the note;
+  - a link to a note becomes a link to the summary that covers the note, inside FOLDER or not,
+    so a part of the wiki shows how it connects to the rest;
   - a link to a file no summary covers stays a link to the file;
   - links to its own notes, its parent and its children are left out, since the tree shows them;
   - broken links, links inside code and web links are left out.

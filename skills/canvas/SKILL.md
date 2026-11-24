@@ -35,12 +35,16 @@ No step needs a note read. Never write the tree, a link or a picture by hand.
    go on or to run the `index` skill first.
 2. **Draw.**
    - The wiki's summaries: `labbrain hierarchy`. It writes `_maps/hierarchy.yaml` and its picture.
+   - One part of the wiki: `labbrain hierarchy <folder>`, with the folder the person named. It
+     writes `_maps/<folder>/hierarchy.yaml` and its picture. Links that leave the folder stay, so
+     the picture shows how that part connects to the rest.
    - A JSON or YAML file: `labbrain canvas <file>`.
    - The picture is an Obsidian canvas unless the person's `LABBRAIN_VIEW` says `html`. Add
      `--view html` or `--view canvas` only if they ask for that view.
-3. **Read the result.** For the summaries, read `_maps/hierarchy.yaml`. Look for:
+3. **Read the result.** For the summaries, read the `hierarchy.yaml` that step 2 wrote. Look for:
    - summaries with no `description`: their boxes show a title only;
-   - files linked to directly because no summary covers them: a folder that may need a summary;
+   - links to notes rather than summaries, because no summary covers them: a folder that may
+     need a summary;
    - a summary that links to many others, or that nothing links to.
 4. **Report** in chat: the path of the picture to open, the number of summaries and links, and what
    you saw in step 3. Say what you saw, not what it means for the notes: that is for their authors.

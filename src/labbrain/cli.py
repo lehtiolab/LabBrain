@@ -43,9 +43,9 @@ COMMANDS = {
     "canvas": "Draw each .json, .yaml or .yml FILE as a tree of boxes, into _maps/ at the wiki "
     "root: an Obsidian canvas or an HTML page (--view, else LABBRAIN_VIEW, else canvas). Git "
     "ignores _maps/, and nothing else in labbrain looks inside it.",
-    "hierarchy": "Write the folder summaries as one tree to _maps/hierarchy.yaml: each summary's "
-    "title, description and child summaries, and the other summaries and files its text links "
-    "to. Then draw it beside, as `canvas` does.",
+    "hierarchy": "Write the folder summaries in each FOLDER (default: the whole wiki) as one tree "
+    "to _maps/<FOLDER>/hierarchy.yaml: each summary's title, description and child summaries, "
+    "and the other summaries and files its text links to. Then draw it beside, as `canvas` does.",
 }
 
 
@@ -165,6 +165,7 @@ def parser():
     cmds["stamp"].add_argument("files", nargs="*", metavar="SUMMARY")
     cmds["links"].add_argument("files", nargs="*", metavar="FILE")
     cmds["canvas"].add_argument("files", nargs="*", metavar="FILE")
+    cmds["hierarchy"].add_argument("files", nargs="*", metavar="FOLDER")
     for name in ("canvas", "hierarchy"):
         cmds[name].add_argument(
             "--view", choices=VIEWS, help="canvas or html (default: LABBRAIN_VIEW, else canvas)"
@@ -351,10 +352,17 @@ def main(argv=None):
             return 2
         return 0
     if cmd == "hierarchy":
-        tree = write_hierarchy(vault)
-        print("wrote", tree)
-        for p in draw(vault, [tree], args.view or cfg["LABBRAIN_VIEW"]):
-            print("drew", p)
+        folders = ["" if p == os.curdir else p for p in rest] or [""]
+        wrong = [p for p in folders if not os.path.isdir(os.path.join(vault, p))]
+        for p in wrong:
+            print("not a folder:", p)
+        if wrong:
+            return 2
+        for top in folders:
+            tree = write_hierarchy(vault, top)
+            print("wrote", tree)
+            for p in draw(vault, [tree], args.view or cfg["LABBRAIN_VIEW"]):
+                print("drew", p)
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:

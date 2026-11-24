@@ -66,7 +66,7 @@ the wiki, run `pixi run --manifest-path <LabBrain>/pixi.toml labbrain <command>`
 | `labbrain hot` | often-changed files, the files that cite them, and which are due a drift check |
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check |
 | `labbrain canvas FILE...` | draws a JSON or YAML file as a tree of boxes, as an Obsidian canvas or a web page, in `_maps/` |
-| `labbrain hierarchy` | writes the folder summaries as one tree, with the links between them, to `_maps/hierarchy.yaml`, and draws it |
+| `labbrain hierarchy [FOLDER...]` | writes the folder summaries, of the whole wiki or of each FOLDER, as one tree with the links between them, to `_maps/`, and draws it |
 
 ## Skills
 Instructions for an agent working on a wiki, in the `SKILL.md` format. Load the ones a job needs.

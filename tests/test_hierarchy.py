@@ -1,6 +1,7 @@
 """The folder summaries as one tree: children, links, and the picture drawn from it."""
 
 import json
+import os
 
 import yaml
 
@@ -94,3 +95,37 @@ def test_the_command(vault, monkeypatch, capsys):
     ]
     assert canvas["nodes"][1]["text"].endswith("\n→ [[Kitchen/Recipes.md|Recipes]]")
     assert '<a href="../Garden/Garden_summary.md">' in (maps / "hierarchy.html").read_text()
+
+
+def test_one_folder(vault):
+    """A folder with a summary over everything in it is topped by that summary; a link that
+    leaves the folder stays. A folder without one is topped by the folder."""
+    garden = hierarchy(str(vault), "Garden")
+    assert garden == hierarchy(str(vault))["children"][0]
+    assert garden["links"] == ["Kitchen/Recipes.md"]
+    assert hierarchy(str(vault), os.path.join("Garden", "Soil")) == SOIL
+    assert hierarchy(str(vault), "Kitchen") == {"title": "Kitchen", "path": "Kitchen/index.md"}
+
+
+def test_a_root_summary_does_not_hide_another_repo(vault):
+    """The root's own summary tops only its own repo: Shelf, a repo of its own, sits beside it."""
+    (vault / "vault_summary.md").write_text(summary("Vault — Summary", "- [Garden](Garden)"))
+    tree = hierarchy(str(vault))
+    assert tree["title"] == "vault"
+    assert [c["path"] for c in tree["children"]] == ["vault_summary.md", "Shelf/Shelf_summary.md"]
+    assert tree["children"][0]["children"][0]["path"] == "Garden/Garden_summary.md"
+
+
+def test_the_command_on_a_folder(vault, monkeypatch, capsys):
+    monkeypatch.chdir(vault / "Garden")  # a folder argument is relative to where you run it
+    assert main(["hierarchy", "--vault", str(vault), "."]) == 0
+    assert main(["hierarchy", "--vault", str(vault), "Soil", "Nope"]) == 2  # nothing written
+    assert capsys.readouterr().out.splitlines() == [
+        "wrote _maps/Garden/hierarchy.yaml",
+        "drew _maps/Garden/hierarchy.canvas",
+        "not a folder: Garden/Nope",
+    ]
+    assert sorted(p.name for p in (vault / "_maps" / "Garden").iterdir()) == [
+        "hierarchy.canvas",
+        "hierarchy.yaml",
+    ]
