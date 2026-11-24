@@ -98,6 +98,18 @@ def test_reference_sees_the_fixture(pair):
     assert "Garden/Tomatoes.md" in out and "never checked: DUE" in out
 
 
+def test_the_maps_folder_is_invisible(pair):
+    """A deliberate difference: labbrain never looks inside _maps/ at the wiki root, where it
+    draws its pictures. The reference script, which has no such folder, sees the same wiki."""
+    ref, pkg = pair
+    (pkg / "_maps" / "Garden").mkdir(parents=True)
+    for name in ("hierarchy.yaml", "hierarchy.canvas", "Garden/plan.html", "Stray.md"):
+        (pkg / "_maps" / name).write_text("[[Beans]] and [a broken link](Nope.md)\n")
+    for args in (("check",), ("stale",), ("index",), ("links",), ("hot",)):
+        assert run(PACKAGE, pkg, args) == run(REF, ref, args), args
+    assert {k: v for k, v in snapshot(pkg).items() if not k.startswith("_maps")} == snapshot(ref)
+
+
 def test_links_removes_an_emptied_drift_key(pair):
     """A deliberate difference: when links drops a summary's last drift record, because its file
     is gone, okf_vault.sh leaves `drift_verification:` with nothing under it; the package removes

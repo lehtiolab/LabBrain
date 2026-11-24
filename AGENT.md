@@ -90,6 +90,7 @@ skills and patterns come back here by pull request; raw traces never do.
     - a file argument outside the vault is refused, before anything is written;
     - `links` removes `drift_verification` when it drops the last record, instead of leaving the
       key empty;
+    - nothing looks inside `_maps/` at the wiki root, where labbrain draws its pictures;
     - argparse handles usage and help.
 
 ---

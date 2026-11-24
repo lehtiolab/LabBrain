@@ -142,8 +142,8 @@ It ends with `N stale summary(ies).` and exits with 1 if N isn't 0.
 
 **What a summary covers:** every text file in its folder (`.md`, `.canvas`, `.sh`, `.nix`, `.lock`,
 `.txt`, `.py`, `.json`, `.yaml`, `.yml`, `.toml`), and those in subfolders without a summary of their
-own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, and anything in
-another git repo. Images and data files are attachments, not sources.
+own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, anything in
+another git repo, and `_maps/` at the wiki root, where labbrain draws its pictures. Images and data files are attachments, not sources.
 
 The hash is taken of the file on disk, so uncommitted edits count.
 

@@ -4,6 +4,10 @@ import os
 
 RESERVED = ("index.md", "log.md")
 
+# The folder at the wiki root where labbrain draws its pictures. Git ignores it, and labbrain
+# never looks inside it, so a picture can't make a summary stale or show up in a listing.
+MAPS = "_maps"
+
 
 # Files a summary is built from (hashed into `sources`); everything else is an attachment.
 TEXT_EXT = {
@@ -43,7 +47,7 @@ def listdir(vault, d):
         return [], []
     dirs, files = [], []
     for e in entries:
-        if e.startswith("."):
+        if e.startswith(".") or (not d and e == MAPS):
             continue
         (dirs if os.path.isdir(os.path.join(vault, d, e)) else files).append(e)
     return dirs, files
