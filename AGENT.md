@@ -39,7 +39,7 @@ jobs will run unattended at night.
 | `labbrain.cli` | `labbrain <command>`, 10 commands; reads the settings | works |
 | `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`, `LABBRAIN_VIEW`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
-| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift` | first versions |
+| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift`; `canvas` | first versions; `canvas` experimental |
 | `patterns/` | trace and pattern formats, dummy examples | draft; no code writes them yet |
 | *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, search code, an MCP server | not started |
 | *(separate feature)* | task boards (Kanban): an Obsidian plugin's format, maybe a front-end feature later | not started; no board handling in the core |

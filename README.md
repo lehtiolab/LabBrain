@@ -78,6 +78,7 @@ Instructions for an agent working on a wiki, in the `SKILL.md` format. Load the 
 | [summary-writing](skills/summary-writing/SKILL.md) | writing and rebuilding a folder summary faithfully |
 | [index](skills/index/SKILL.md) | bringing headers, summaries, listings and the map up to date |
 | [drift](skills/drift/SKILL.md) | checking that summaries still say what their notes say |
+| [canvas](skills/canvas/SKILL.md) | drawing the summaries as one tree, or any JSON or YAML file; experimental |
 
 The skills here are seeds. Each wiki keeps and evolves its own copies, and what it learns from its
 runs goes in its `patterns/` (see [patterns/README.md](patterns/README.md)). A skill or pattern that
