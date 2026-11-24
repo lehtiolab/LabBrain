@@ -4,8 +4,9 @@ import os
 
 RESERVED = ("index.md", "log.md")
 
-# The folder at the wiki root where labbrain draws its pictures. Git ignores it, and labbrain
-# never looks inside it, so a picture can't make a summary stale or show up in a listing.
+# Where labbrain draws its pictures: at the root of the wiki, and of each git repo in it, since
+# --vault can name an inner bundle. Git ignores it, and labbrain never looks inside it, so a
+# picture can't make a summary stale or show up in a listing.
 MAPS = "_maps"
 
 
@@ -47,7 +48,7 @@ def listdir(vault, d):
         return [], []
     dirs, files = [], []
     for e in entries:
-        if e.startswith(".") or (not d and e == MAPS):
+        if e.startswith(".") or (e == MAPS and is_repo_root(vault, d)):
             continue
         (dirs if os.path.isdir(os.path.join(vault, d, e)) else files).append(e)
     return dirs, files

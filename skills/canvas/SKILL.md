@@ -25,7 +25,7 @@ wrong or cluttered, and change nothing to make the picture look better.
 | which summaries are stale | code: `labbrain stale` |
 | the tree of summaries and their links | code: `labbrain hierarchy` |
 | the picture of any JSON or YAML file | code: `labbrain canvas` |
-| where the files go | code: always `_maps/` at the wiki root |
+| where the files go | code: always `_maps/` at the wiki root, at the path of what was drawn |
 | reading the result, and the report | **the model** |
 
 No step needs a note read. Never write the tree, a link or a picture by hand.

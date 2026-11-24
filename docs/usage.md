@@ -145,7 +145,8 @@ It ends with `N stale summary(ies).` and exits with 1 if N isn't 0.
 **What a summary covers:** every text file in its folder (`.md`, `.canvas`, `.sh`, `.nix`, `.lock`,
 `.txt`, `.py`, `.json`, `.yaml`, `.yml`, `.toml`), and those in subfolders without a summary of their
 own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, anything in
-another git repo, and `_maps/` at the wiki root, where labbrain draws its pictures. Images and data files are attachments, not sources.
+another git repo, and `_maps/` at the root of the wiki or of any git repo in it, where labbrain draws
+its pictures. Images and data files are attachments, not sources.
 
 The hash is taken of the file on disk, so uncommitted edits count.
 
@@ -421,10 +422,12 @@ Draws each `.json`, `.yaml` or `.yml` FILE as a tree of boxes, so you can see ho
   - `canvas`: an Obsidian canvas ([JSON Canvas](https://jsoncanvas.org)), which Obsidian opens;
   - `html`: one web page, with nothing loaded from the internet.
 - **The picture goes in `_maps/` at the wiki root,** at the file's own path with the view's
-  extension: `Garden/plan.yaml` becomes `_maps/Garden/plan.canvas`. A file already in `_maps/` gets
+  extension: `Garden/plan.yaml` becomes `_maps/Garden/plan.canvas`. With `--vault` naming an inner
+  bundle, the root is that bundle's. A file already in `_maps/` gets
   its picture beside it. Drawing a file again replaces its picture.
 - **`_maps/` is never part of the wiki.** labbrain writes `_maps/.gitignore`, so git ignores the
-  folder, and no other command looks inside it: no summary covers it, and no listing shows it.
+  folder, and no other command looks inside it: no summary covers it, and no listing shows it. That
+  holds for a `_maps/` at the root of any git repo in the wiki too, such as one drawn with `--vault`.
 
 **What goes in a box:**
 - A mapping or a list is a box, titled by its key. A list item has no title.

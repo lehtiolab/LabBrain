@@ -98,7 +98,7 @@ sources:                         # every file it was built from, with its git bl
 - **Frontmatter in `index.md`:** only a bundle root's `index.md` has any, and it holds only
   `okf_version: "0.2"`.
 - **`log.md`** at each bundle root records changes, newest first, under `## YYYY-MM-DD` headings.
-- **`_maps/`** at the wiki root holds the pictures labbrain draws. Git ignores it, labbrain never
+- **`_maps/`** at the root of the wiki, or of a git repo in it, holds the pictures labbrain draws. Git ignores it, labbrain never
   reads it, and nothing in it is part of the wiki: no summary covers it and no listing shows it.
   Never write there by hand.
 
