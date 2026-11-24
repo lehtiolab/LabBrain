@@ -76,6 +76,9 @@ sources:                         # every file it was built from, with its git bl
 - **You write `title`, `description` and the body. Code writes the rest.** Run
   `labbrain stamp --by <actor> <summary>`: it lists the sources, hashes them, and sets `generated`,
   `parent` and `children`. Never fill these in by hand.
+- **`topics`,** optional, lists what the summary is about, from the wiki's vocabulary in
+  `topics.yaml`: `topics: [proteomics, normalization]`. A topic that isn't in the vocabulary is a
+  proposal for a person, not a value to write. The graph and search read it.
 - **`sources`** are every text file in the folder, plus the files in subfolders that have no summary
   of their own. They never include the summary itself, `index.md` or `log.md`.
 - **Why a hash:** it is the git blob id. `git cat-file -p <hash>`, run in the owning repo, prints the
@@ -138,6 +141,7 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain hot [--days D] [--min N] [--recheck R]` | lists often-changed files, the files that cite them, and which are due a drift check | nothing |
 | `labbrain drift-stamp --by ACTOR FILE [SUMMARY...]` | records a drift check | summaries' `drift_verification` |
 | `labbrain canvas FILE...` | draws JSON or YAML files as trees of boxes | pictures in `_maps/` only |
+| `labbrain graph` | the wiki's graph, a cache rebuilt from changed files | `_maps/` only |
 | `labbrain hierarchy [FOLDER...]` | the summaries, of the wiki or of each FOLDER, as one tree with their links, and its picture | `_maps/` only |
 
 ## Running labbrain

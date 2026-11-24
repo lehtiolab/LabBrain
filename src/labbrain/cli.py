@@ -17,6 +17,7 @@ from .okf.drift import RECHECK, drift_stamp, hot, is_due
 from .okf.files import RESERVED, md_files, read, text_files, write
 from .okf.frontmatter import content_hash, fm_get, split_fm
 from .okf.git import git_hashes
+from .okf.graph import GRAPH, write_graph
 from .okf.hierarchy import write_hierarchy
 from .okf.index import OKF_VERSION, build_indexes
 from .okf.links import carry_hashes, convert_links, name_index
@@ -47,6 +48,9 @@ COMMANDS = {
     "hierarchy": "Write the folder summaries in each FOLDER (default: the whole wiki) as one tree "
     "to _maps/<FOLDER>/hierarchy.yaml: each summary's title, description and child summaries, "
     "and the other summaries and files its text links to. Then draw it beside, as `canvas` does.",
+    "graph": "Bring the wiki's graph up to date in _maps/graph.json: each markdown file a node; "
+    "the links, the notes each summary covers, and the summaries under each summary the edges. "
+    "Reads only the files that changed since the last build.",
 }
 
 
@@ -369,6 +373,20 @@ def main(argv=None):
             print("wrote", tree)
             for p in draw(vault, [tree], args.view or cfg["LABBRAIN_VIEW"]):
                 print("drew", p)
+        return 0
+    if cmd == "graph":
+        graph, fresh = write_graph(vault)
+        kinds = [e["kind"] for e in graph["edges"]]
+        print(
+            "wrote %s: %d files; %d link, %d covers and %d child edges; %d file(s) read, the rest "
+            "unchanged"
+            % (
+                GRAPH,
+                len(graph["nodes"]),
+                *(kinds.count(k) for k in ("link", "covers", "child")),
+                fresh,
+            )
+        )
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:

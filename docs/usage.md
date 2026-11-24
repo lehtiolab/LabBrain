@@ -87,6 +87,7 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`drift-stamp`](#labbrain-drift-stamp) | the summaries' `drift_verification` |
 | [`canvas`](#labbrain-canvas) | pictures in `_maps/`, which git ignores |
 | [`hierarchy`](#labbrain-hierarchy) | `_maps/hierarchy.yaml` and its picture |
+| [`graph`](#labbrain-graph) | `_maps/graph.json`, the wiki's graph |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -513,6 +514,58 @@ children:
   description: Jars kept on the shelf.
 ```
 The picture is only as current as the summaries: run `labbrain stale` first.
+
+### labbrain graph
+```
+labbrain graph [--vault DIR]
+```
+Brings the wiki's graph up to date in `_maps/graph.json`. The graph is a cache: code builds it from
+the wiki, nobody edits it, and git ignores it, like everything in `_maps/`. Throw it away and the
+next run builds the same one.
+
+- **Each markdown file is a node,** except `index.md` and `log.md`, which link to everything around
+  them. A node has the file's path as its `id`, and its `type`, `title`, `description`, `tags` and
+  `topics` from its header, where it has them. A `title` comes from the header, else the first
+  `# heading`, else the file name. `hash` is the file's git blob hash.
+- **Edges have a `kind`:**
+
+  | kind | from | to |
+  |---|---|---|
+  | `link` | a file | a file its text links to, by `[[wikilink]]` or relative link, resolved the way Obsidian resolves it |
+  | `covers` | a summary | a note it is built from (one of its `sources`) |
+  | `child` | a summary | the summary of a subfolder under it |
+
+  Links inside code, to files that don't exist, to files that aren't markdown, and to the file
+  itself make no edge.
+- **The same wiki always gives the same file:** nodes and edges are sorted, and nothing in it
+  depends on the time or on who ran it. Anyone who builds it from the same commits gets the same
+  bytes.
+- **Only changed files are read.** `_maps/graph-cache.json` keeps what was read from each file,
+  under the file's git blob hash, and a file whose hash hasn't changed isn't read again. Links are
+  resolved again on every run, since a new file can change where `[[Beans]]` leads.
+
+```json
+{
+ "title": "vault",
+ "nodes": [
+  {"id": "Garden/Garden_summary.md", "type": "Folder Summary", "title": "Garden — Summary",
+   "description": "Trials of tomatoes and beans in the test garden, with soil notes.", "hash": "…"},
+  {"id": "Garden/Tomatoes.md", "type": "Note", "title": "Tomatoes", "hash": "…"}
+ ],
+ "edges": [
+  {"from": "Garden/Garden_summary.md", "to": "Garden/Soil/Soil_summary.md", "kind": "child"},
+  {"from": "Garden/Garden_summary.md", "to": "Garden/Tomatoes.md", "kind": "covers"},
+  {"from": "Garden/Tomatoes.md", "to": "Kitchen/Recipes.md", "kind": "link"}
+ ]
+}
+```
+
+```
+$ labbrain graph
+wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 13 file(s) read, the rest unchanged
+$ labbrain graph
+wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 0 file(s) read, the rest unchanged
+```
 
 ## Common sequences
 **After notes changed** (the code steps of the `index` skill):
