@@ -313,128 +313,16 @@ never deleted a file that had a drift record.
 `links` rewrites a summary only when its records change. The personal vault's one case was removed
 by hand.
 
-## 2026-11-24 — 67de892 — PyYAML is a runtime dependency
+---
 
-**Decided:** PyYAML joins the runtime, beside `python-dotenv`. It reads and writes whole YAML data
-files, and reads with `safe_load` only. Frontmatter stays with the hand-written parser.
+## 2026-11-12 — uncommitted — decisions are logged by `dev-skills/logging`, with their commit's hash
 
-**Why:** the user asked for pictures of any JSON or YAML file, and expects YAML to be needed for
-other jobs later. The rule against a YAML library was about rewriting frontmatter, where key order
-and quoting must survive; a whole data file read once has no such need. PyYAML was already in both
-locks, through pre-commit.
+**Decided:** `dev-skills/logging` (tracked) writes audit-log entries and fills in their hashes.
+The work is committed first, locally, staging only the paths the decision touched; the entry
+follows in a commit of its own, on a `feat/` branch, never on `main`. `dev-skills/logging/pending.sh` lists entries whose hash is
+`uncommitted`, missing, or no commit in this repo. AGENT.md runs it at the start of every session,
+and the agent raises what it lists with the user before resolving anything. Nothing is pushed.
 
-**Rejected:**
-- **JSON only, or YAML only in the subset the frontmatter parser reads:** neither reads any YAML file.
+**Why:** a decision is taken before its commit exists, so the hash was left for later and depended on remembering. Asked for.
 
-**Cost:** a compiled dependency, with wheels for every platform pixi lists.
-
-## 2026-11-24 — d9c41ef — _maps/ at the wiki root is labbrain's own
-
-**Discovered:** a git-ignored folder isn't invisible to labbrain. `listdir` skips only dot-names,
-so pictures in an ignored `maps/` would still become summary sources, need headers and show up in
-listings.
-
-**Decided:** `listdir` skips `_maps/` at the wiki root, so no command sees it. The picture commands
-write `_maps/.gitignore` with `*`, so the folder ignores itself, and a wiki's own `.gitignore` is
-never touched. `test_the_maps_folder_is_invisible` holds this against the reference script.
-
-**Why:** the user wanted the pictures inside the wiki and ignored by git, to try them out.
-
-**Rejected:**
-- **`maps/`:** a lab's own `maps/` folder (genetic maps, site maps) would silently drop out of its
-  summaries.
-- **A dot-folder:** Obsidian hides it, so the canvas couldn't be opened.
-- **Making `walk` honour `.gitignore`:** the wiki's root ignores `Shelf/`-style sub-repos that must
-  still be walked, and it would change every command.
-
-**Cost:** a wiki that has its own `_maps/` at the root loses it from summaries and listings.
-
-## 2026-11-24 — 05aacac — Pictures: one tree layout, two views, summaries as the tree
-
-**Decided:**
-- `labbrain canvas` draws any JSON or YAML file and `labbrain hierarchy` draws the folder
-  summaries, both into `_maps/`. Both are experimental.
-- **One layout, two views:** an Obsidian canvas or a self-contained web page, chosen by `--view`
-  or the person's `LABBRAIN_VIEW`.
-- **Boxes are text, with the title linking to the file,** not canvas file nodes. Run on a test
-  file, a file node showed the file but dropped the box's title and description.
-- **The tree is worked out from the folders on disk,** with `expected()`, not from the `parent` and
-  `children` recorded in frontmatter, which can be out of date.
-- **A link to a note becomes a link to the summary that covers it** (`covers()`). Links to the
-  summary's own notes, its parent and its children are left out, since the tree shows them.
-- **The web page draws arrows above the boxes,** so an arrow crossing a box can't pass for a link
-  from it.
-
-**Why:** the user wanted to see the subjects and their relationships before paying a model to read
-the summaries. Everything here can be worked out from paths, frontmatter and links, so it is code.
-
-**Cost:**
-- On the user's wiki (85 summaries, 246 links between them), the tree reads well, but the link
-  arrows tangle: they cross whole columns of boxes. How to show links is open.
-- Subjects inside the summaries, which need a model, are not started.
-
-## 2026-11-24 — 0d70251 — Links as text, a folder's own tree, _maps/ at every repo root
-
-**Decided:**
-- **A box's links are one line of text,** `→ Vision — Summary · Nix — Summary`, each name a link to
-  its file, not arrows (ef72b7d). A name is the file's `title`, else its file name. The extra boxes
-  for files no summary covers went with the arrows.
-- **`labbrain hierarchy FOLDER...` draws one part of the wiki** into `_maps/<FOLDER>/`. The tree's
-  top is the folder's own summary when everything else in it sits under that summary, else the
-  folder itself. Links that leave the folder stay, to show how it connects to the rest.
-- **`_maps/` is skipped at the root of every git repo in the wiki** (8c50ebd), not only at the
-  wiki's root.
-
-**Why:**
-- On the user's wiki, 246 link arrows crossed whole columns of boxes. Leaving out links along a
-  branch would have removed only 14 of them. The user chose links as text over hiding them until
-  hover, or keeping only the links between bundles.
-- The user expects people to ask for a picture of one directory, not only of the whole wiki.
-- `--vault` can name an inner bundle, which puts `_maps/` in that bundle's root. A later run on the
-  whole wiki would then have taken the pictures for the bundle summary's sources.
-
-**Cost:**
-- Links no longer show where their target sits in the picture; the name says which summary it is.
-- Links to images and PDFs show like any other file a summary links to.
-
-## 2026-11-24 — 937fcab — The wiki's own config, the graph as a cache, code-first search, the graph page
-
-**Decided:**
-- **Two levels of configuration** (fe38bd3). A person's settings stay in `env/.env`. Rules for
-  everyone go in `labbrain.yaml` and `topics.yaml` at the wiki root, committed and changed by
-  review; no setting overrides them. The vocabulary (topics, synonyms, narrower topics) is its own
-  file, because it grows and changes often. Both are read once in `cli.py` and passed down field by
-  field; a bad file stops every command.
-- **The graph is a cache** (542234b): built by code from the wiki, never edited, never committed.
-  Each markdown file is a node; `link`, `covers` and `child` are the edges. Sorted, with no times,
-  so the same commits give the same bytes. A per-file cache keyed by git blob hash means a rebuild
-  reads only changed files; links are resolved again on every run.
-- **Search climbs a ladder with code only** (d8698ab): headers with the vocabulary, then the full
-  text only if nothing was found (or `--text`), then links up to `--depth`, plus the summaries over
-  what was found. The `search` skill runs it before a model reads anything.
-- **The graph page** (67647eb, 937fcab): one HTML file with the graph inside and nothing loaded
-  from elsewhere, so it works from disk or a server, without Obsidian. It opens at the wiki's root;
-  a click re-centres it; a search puts its hits around the query. The layout is radial and
-  deterministic. Three colours (summaries, notes, paper concepts) and grey for every other type,
-  checked for colour-blind readers in light and dark, with summaries drawn larger so colour is never
-  the only cue.
-
-**Why:** the user wants to explore the wiki visually and filter what to see, to find the right
-files without a model reading the whole wiki, and to run this for a lab on one shared repo, with a
-graph agent curating it nightly. On the user's wiki (271 files, 818 links), a full build reads 261
-files in under a second, and a rebuild with nothing changed reads none.
-
-**Rejected:**
-- **A second `.env` for the wiki:** flat lines can't hold a vocabulary, and `.env` is per person,
-  ignored by git and the place for secrets.
-- **Committing the graph:** one large file rewritten every night by several agents and people
-  would conflict every day. Anyone rebuilds the same graph in seconds; the nightly run can publish a
-  copy on the lab's server for people without LabBrain.
-- **SQLite now:** the graph fits in memory, and the full-text step reads every file only when the
-  headers find nothing. FTS5 is in both environments' SQLite for when that gets slow.
-
-**Cost:**
-- Search matches words, not meaning: the vocabulary has to carry the synonyms.
-- Renaming a file changes its node's id; the graph agent will have to carry curated relations over.
-- More than 350 files in view and the page cuts the outer rings.
-- The graph agent, which curates topics and relations, is not started: it is on `feat/graph-agent`.
+**Cost:** a logged decision is two commits, the work and then the entry. `logging` joins `update-docs` in `dev-skills/`, under the same tests.
