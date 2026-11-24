@@ -69,6 +69,7 @@ the wiki, run `pixi run --manifest-path <LabBrain>/pixi.toml labbrain <command>`
 | `labbrain graph` | brings the wiki's graph up to date in `_maps/graph.json`, and draws a page to explore it in any browser |
 | `labbrain search WORD...` | finds files by their headers, then their text, then the links around them, with code only |
 | `labbrain topics --by ACTOR FILE TOPIC...` | sets a file's topics from the wiki's vocabulary; a raw note only with its author's consent |
+| `labbrain curate` | the graph agent's work list: files without topics, topics outside the vocabulary, files no link reaches |
 | `labbrain hierarchy [FOLDER...]` | writes the folder summaries, of the whole wiki or of each FOLDER, as one tree with the links between them, to `_maps/`, and draws it |
 
 ## Skills
@@ -81,6 +82,7 @@ Instructions for an agent working on a wiki, in the `SKILL.md` format. Load the 
 | [summary-writing](skills/summary-writing/SKILL.md) | writing and rebuilding a folder summary faithfully |
 | [index](skills/index/SKILL.md) | bringing headers, summaries, listings and the map up to date |
 | [drift](skills/drift/SKILL.md) | checking that summaries still say what their notes say |
+| [graph](skills/graph/SKILL.md) | curating the graph: topics from the wiki's vocabulary, proposals for a person; experimental |
 | [canvas](skills/canvas/SKILL.md) | drawing the summaries as one tree, or any JSON or YAML file; experimental |
 
 The skills here are seeds. Each wiki keeps and evolves its own copies, and what it learns from its

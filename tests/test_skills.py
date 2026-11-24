@@ -27,6 +27,7 @@ def test_there_are_skills():
         "index",
         "drift",
         "canvas",
+        "graph",
         "update-docs",
     }
 

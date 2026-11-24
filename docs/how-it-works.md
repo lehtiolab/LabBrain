@@ -122,10 +122,10 @@ A skill or pattern that works beyond one lab comes back here by pull request, wi
 taken out. Raw traces never leave the wiki.
 
 ## What exists today
-- **Works:** the thirteen commands, the six wiki skills, the settings in `env/`, and the wiki's own
+- **Works:** the fourteen commands, the seven wiki skills, the settings in `env/`, and the wiki's own
   config.
-- **Experimental:** the `canvas`, `hierarchy`, `graph`, `search` and `topics` commands, and the
-  `canvas` skill.
+- **Experimental:** the `canvas`, `hierarchy`, `graph`, `search`, `topics` and `curate` commands,
+  and the `canvas` and `graph` skills.
 - **Draft:** the trace and pattern formats.
 - **Planned:** the code that calls a model (`llm()`), the nightly run, an MCP server,
   and task boards as a separate feature.

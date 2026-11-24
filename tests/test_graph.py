@@ -41,6 +41,7 @@ def test_the_nodes(vault):
     assert (garden["title"], garden["type"]) == ("Garden — Summary", "Folder Summary")
     assert garden["description"].startswith("Trials of tomatoes")
     assert nodes["Garden/Tomatoes.md"]["title"] == "Tomatoes"  # its first heading
+    assert "annotate" not in nodes["Garden/Tomatoes.md"]  # only where the author said true
     assert len(garden["hash"]) == 40
 
 
@@ -88,6 +89,22 @@ def test_only_changed_files_are_read(vault, monkeypatch):
     ]
     new = load_cache(str(vault))
     assert len(new) == len(old) and set(new) != set(old)  # the old version's entry is gone
+
+
+def test_an_old_cache_is_rebuilt(vault):
+    """A cache from another version of parse() would miss fields: it is read again."""
+    write_graph(str(vault))
+    cache = vault / "_maps" / "graph-cache.json"
+    cache.write_text(json.dumps(json.loads(cache.read_text())["files"]))  # the version-1 shape
+    assert load_cache(str(vault)) == {}
+    assert write_graph(str(vault))[1] == 14
+
+
+def test_consent_is_in_the_graph(vault):
+    note = vault / "Garden" / "Tomatoes.md"
+    note.write_text(note.read_text().replace("generated:", "annotate: true\ngenerated:", 1))
+    graph, _ = build_graph(str(vault), {})
+    assert next(n for n in graph["nodes"] if n["id"] == "Garden/Tomatoes.md")["annotate"] is True
 
 
 def test_a_damaged_cache_is_rebuilt(vault):

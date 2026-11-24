@@ -31,6 +31,7 @@ There is one module per subject, in `src/labbrain/okf/`:
 | `canvas.py` | pictures of JSON and YAML data, in `_maps/` |
 | `hierarchy.py` | the folder summaries as one tree, with the links between them |
 | `graph.py` | the wiki's graph: nodes, edges, and the cache of what each file holds |
+| `curate.py` | the graph agent's work list, from the graph |
 | `topics.py` | topics from the vocabulary, written into headers |
 | `search.py` | code-only search over the graph: headers, full text, links |
 | `page.py` | the graph page; its HTML and JavaScript are in `graph_page.html` beside it |

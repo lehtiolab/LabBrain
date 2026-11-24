@@ -147,6 +147,7 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain graph` | the wiki's graph, a cache rebuilt from changed files | `_maps/` only |
 | `labbrain search WORD... [--depth N] [--text]` | files by header, then text, then links; code only | `_maps/` only |
 | `labbrain topics --by ACTOR FILE TOPIC...` | sets a file's topics from the vocabulary; a raw note only with its author's consent | `topics`, and a note's `annotated` |
+| `labbrain curate` | the graph agent's work list, from the graph | `_maps/` only |
 | `labbrain hierarchy [FOLDER...]` | the summaries, of the wiki or of each FOLDER, as one tree with their links, and its picture | `_maps/` only |
 
 ## Running labbrain

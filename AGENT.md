@@ -40,15 +40,16 @@ jobs will run unattended at night.
 | part | role | state |
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
+| `labbrain.okf.curate` | the graph agent's work list, from the graph | experimental: being tried out |
 | `labbrain.okf.topics` | topics from the vocabulary written into headers; a raw note only with `annotate: true`, recorded in `annotated` | experimental: being tried out |
 | `labbrain.okf.search` | code-only search over the graph: headers, then full text, then links | experimental: being tried out |
 | `labbrain.okf.graph`, `.page` | the wiki's graph in `_maps/graph.json`: a cache, rebuilt from changed files only, never committed; and the page to explore it, from `graph_page.html` | experimental: being tried out |
 | `labbrain.okf.canvas`, `.hierarchy` | pictures of JSON and YAML data in `_maps/` (an Obsidian canvas or a web page), and the summaries as one tree to draw | experimental: being tried out |
-| `labbrain.cli` | `labbrain <command>`, 13 commands; reads the settings | works |
+| `labbrain.cli` | `labbrain <command>`, 14 commands; reads the settings | works |
 | `labbrain.okf.config` | the wiki's own config: `labbrain.yaml` and `topics.yaml` at its root | works |
 | `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`, `LABBRAIN_VIEW`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
-| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift`; `canvas` | first versions; `canvas` experimental |
+| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift`; `canvas`, `graph` | first versions; `canvas` and `graph` experimental |
 | `patterns/` | trace and pattern formats, dummy examples | draft; no code writes them yet |
 | *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, an MCP server | not started |
 | *(separate feature)* | task boards (Kanban): an Obsidian plugin's format, maybe a front-end feature later | not started; no board handling in the core |

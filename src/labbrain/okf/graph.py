@@ -17,7 +17,8 @@ from .summaries import expected, summaries
 
 GRAPH, CACHE = join(MAPS, "graph.json"), join(MAPS, "graph-cache.json")
 SCHEME = re.compile(r"[a-z][a-z0-9+.-]*:", re.I)
-FIELDS = ("type", "title", "description", "tags", "topics")
+FIELDS = ("type", "title", "description", "tags", "topics", "annotate")
+CACHE_VERSION = 2  # what parse() returns; a cache from another version is rebuilt
 
 
 def parse(text):
@@ -44,6 +45,7 @@ def parse(text):
         "description": fm_get(fm, "description"),
         "tags": fm_list(fm, "tags"),
         "topics": fm_list(fm, "topics"),
+        "annotate": (fm_get(fm, "annotate") or "").lower() == "true",  # the author's consent
     }
     return {k: v for k, v in fields.items() if v}, refs
 
@@ -92,9 +94,12 @@ def build_graph(vault, cache):
 def load_cache(vault):
     """The per-file cache from the last build; empty if there is none or it can't be used."""
     try:
-        cache = json.loads(read(vault, CACHE))
+        saved = json.loads(read(vault, CACHE))
     except (OSError, ValueError):
         return {}
+    if not isinstance(saved, dict) or saved.get("version") != CACHE_VERSION:
+        return {}
+    cache = saved.get("files")
     ok = isinstance(cache, dict) and all(
         isinstance(v, list) and len(v) == 2 and isinstance(v[0], dict) and isinstance(v[1], list)
         for v in cache.values()
@@ -111,5 +116,5 @@ def write_graph(vault):
     cache = load_cache(vault)
     graph, parsed = build_graph(vault, cache)
     save(vault, GRAPH, dump(graph))
-    save(vault, CACHE, dump(dict(sorted(parsed.items()))))
+    save(vault, CACHE, dump({"version": CACHE_VERSION, "files": dict(sorted(parsed.items()))}))
     return graph, len(set(parsed) - set(cache))

@@ -13,6 +13,7 @@ from dotenv import dotenv_values
 from .okf.canvas import VIEWS, NotData, draw, save
 from .okf.check import check
 from .okf.config import BadWikiConfig, wiki_config
+from .okf.curate import curate
 from .okf.drift import RECHECK, drift_stamp, hot, is_due
 from .okf.files import MAPS, RESERVED, join, md_files, read, text_files, write
 from .okf.frontmatter import content_hash, fm_get, split_fm
@@ -63,6 +64,9 @@ COMMANDS = {
     "topic): on a summary or another agent-written file, or on a raw note whose author allows it "
     "(annotate: true), recording ACTOR in its annotated entry. Refuses a word that names no topic, "
     "and writes nothing then.",
+    "curate": "The graph agent's work list, from the graph: files that may have topics and have "
+    "none, topics not in the vocabulary, and files no link reaches; then the topics no file has "
+    "yet and the tags in use. Exit status 1 if there is work for the agent.",
 }
 
 
@@ -463,6 +467,33 @@ def main(argv=None):
         page = graph_page(graph, out + ".html", wiki.hidden, wiki.file_url, wiki.topics, start)
         print("drew", save(vault, out + ".html", page))
         return 0
+    if cmd == "curate":
+        graph, _ = write_graph(vault)
+        work = curate(graph, wiki.topics)
+        if not wiki.topics:
+            print(
+                "no vocabulary yet: topics.yaml at the wiki root is missing or empty, so no topics "
+                "can be set. A person writes it; the graph skill can draft one to start from."
+            )
+        sections = [  # (heading, files, show their descriptions)
+            ("summaries without topics", work["summaries"], True),
+            ("other files that may have topics and have none", work["others"], True),
+            ("files with topics not in topics.yaml", work["unknown"], False),
+            ("files no link reaches, for their authors", work["unlinked"], False),
+        ]
+        for heading, nodes, describe in sections:
+            print("%s (%d)%s" % (heading, len(nodes), ":" if nodes else ""))
+            for n in nodes:
+                print("  %s — %s" % (n["id"], n["title"]))
+                if describe and n.get("description"):
+                    print("      " + n["description"])
+        if work["unused"]:
+            print("topics no file has yet: " + ", ".join(work["unused"]))
+        if work["tags"]:
+            print("tags in use: " + ", ".join("%s (%d)" % t for t in work["tags"]))
+        todo = bool(wiki.topics) and any(work[k] for k in ("summaries", "others", "unknown"))
+        print("work for the graph agent" if todo else "nothing for the graph agent to do")
+        return 1 if todo else 0
     if cmd == "topics":
         if not args.by or "@" in args.by:
             print("usage: topics --by ACTOR FILE TOPIC...   (an actor, never an email address)")

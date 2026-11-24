@@ -69,7 +69,7 @@ actor must name the model that actually did the work. `frontmatter` falls back t
 | status | means |
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
-| 1 | `check` found problems, `stale` found stale summaries, `drift-stamp` was named a file that isn't a summary, or `search` found nothing |
+| 1 | `check` found problems, `stale` found stale summaries, `drift-stamp` was named a file that isn't a summary, `search` found nothing, or `curate` found work for the graph agent |
 | 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, a `hierarchy` folder that isn't one, a bad setting, or a bad wiki config. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
@@ -90,6 +90,7 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`graph`](#labbrain-graph) | `_maps/graph.json`, the wiki's graph |
 | [`search`](#labbrain-search) | the graph, and what it found in `_maps/search/` |
 | [`topics`](#labbrain-topics) | a file's `topics`, and on a raw note its `annotated` entry |
+| [`curate`](#labbrain-curate) | the graph, in `_maps/` |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -529,7 +530,8 @@ next run builds the same one.
 
 - **Each markdown file is a node,** except `index.md` and `log.md`, which link to everything around
   them. A node has the file's path as its `id`, and its `type`, `title`, `description`, `tags` and
-  `topics` from its header, where it has them. A `title` comes from the header, else the first
+  `topics` from its header, where it has them, and `annotate: true` where its author allows agent
+  metadata. A `title` comes from the header, else the first
   `# heading`, else the file name. `hash` is the file's git blob hash.
 - **Edges have a `kind`:**
 
@@ -679,6 +681,47 @@ $ labbrain topics --by claude-code/claude-opus-5-5 Garden/Garden_summary.md beds
 set topics of Garden/Garden_summary.md: garden, vegetables
 $ labbrain topics --by claude-code/claude-opus-5-5 Garden/Garden_summary.md compost
 not in topics.yaml: compost (nothing was written; propose them to a person)
+```
+
+### labbrain curate
+```
+labbrain curate [--vault DIR]
+```
+The graph agent's work list (see the `graph` skill), worked out from [the graph](#labbrain-graph),
+which it brings up to date first. It writes nothing else.
+
+| section | lists | for |
+|---|---|---|
+| summaries without topics | each with its description | the agent: read the summary, then `labbrain topics` |
+| other files that may have topics and have none | agent-written files, and raw notes whose author allows agent metadata | the agent, the same way |
+| files with topics not in topics.yaml | | the agent: a synonym's topic instead, or a proposal for a person |
+| files no link reaches | files other than summaries with no link in or out | their authors: nothing to write |
+
+Then the topics no file has yet, and the tags in use with how many files have each: candidates for
+the vocabulary. Without a vocabulary, it says so first: no topic can be set until a person writes
+`topics.yaml`.
+
+It ends with `work for the graph agent` and exits with 1 when the first three sections list
+anything and there is a vocabulary; otherwise `nothing for the graph agent to do`, and 0. A nightly
+job that gets 0 stops before it calls a model.
+
+```
+$ labbrain curate
+summaries without topics (2):
+  Garden/Soil/Soil_summary.md — Soil — Summary
+      Compost notes for the garden beds.
+  Shelf/Shelf_summary.md — Shelf — Summary
+      Jars kept on the shelf.
+other files that may have topics and have none (2):
+  Kitchen/Pickling.md — Pickling
+      How the kitchen pickles vegetables.
+  Kitchen/Session_2026-01-05.md — Planning session
+      A session that planned the next trials.
+files with topics not in topics.yaml (0)
+files no link reaches, for their authors (1):
+  Kitchen/Shopping.md — Shopping
+topics no file has yet: preserving
+work for the graph agent
 ```
 
 ## Common sequences

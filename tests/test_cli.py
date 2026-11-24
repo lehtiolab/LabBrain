@@ -201,7 +201,7 @@ def test_help_lists_every_command(capsys):
     assert e.value.code == 0
     out = capsys.readouterr().out
     assert all(c in out for c in COMMANDS)
-    assert len(COMMANDS) == 13
+    assert len(COMMANDS) == 14
 
 
 def test_no_command(capsys):
