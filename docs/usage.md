@@ -520,7 +520,8 @@ The picture is only as current as the summaries: run `labbrain stale` first.
 ```
 labbrain graph [--vault DIR]
 ```
-Brings the wiki's graph up to date in `_maps/graph.json`. The graph is a cache: code builds it from
+Brings the wiki's graph up to date in `_maps/graph.json`, and draws it as a page to explore in a
+browser, `_maps/graph.html` (see [The graph page](#the-graph-page)). The graph is a cache: code builds it from
 the wiki, nobody edits it, and git ignores it, like everything in `_maps/`. Throw it away and the
 next run builds the same one.
 
@@ -564,9 +565,32 @@ next run builds the same one.
 ```
 $ labbrain graph
 wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 13 file(s) read, the rest unchanged
+drew _maps/graph.html
 $ labbrain graph
 wrote _maps/graph.json: 13 files; 16 link, 5 covers and 1 child edges; 0 file(s) read, the rest unchanged
+drew _maps/graph.html
 ```
+
+#### The graph page
+One HTML file with the whole graph inside it. It loads nothing from anywhere else, so it works
+opened from disk or from a server, in any browser, without Obsidian.
+- **It opens at the wiki's root,** with the top summaries around it, and the files 1 step further
+  out (`Depth`, 0 to 3). A page drawn by `labbrain search` opens on what the search found instead.
+- **Click a file to put it in the middle,** with the files around it in rings: 1 away, 2 away, and
+  so on. The browser's back button goes back to the view before.
+- **Search** by title, description, path, tags and topics, with the wiki's vocabulary, as step 1 of
+  [`labbrain search`](#labbrain-search). The full text isn't in the page: for that, run
+  `labbrain search --text`.
+- **Show and hide:** which edges to follow (links, the summary tree, a summary's notes); the
+  summaries over the notes in view; each note type; and only the paths that contain some text. The
+  types in `graph.hidden` (see [the wiki's own config](configuration.md#the-wikis-own-config)) start
+  hidden.
+- **The side panel** lists everything in view, by distance, with a link to open each file. Links
+  lead to `graph.file_url` if the wiki's config sets one, else to the files beside `_maps/`.
+- **Colours:** summaries blue (and drawn larger), notes orange, the concepts drafted from papers
+  (`Paper`, `Method`, `Finding`, …) aqua, and every other type grey. Light or dark follows your
+  system.
+- **More than 350 files in view** and the outer rings are cut: lower the depth or hide some types.
 
 ### labbrain search
 ```
@@ -592,7 +616,8 @@ step and stops when one finds something:
   added for context, but its other notes aren't.
 
 It prints the files by step, with why each is there, then writes what it found to
-`_maps/search/<words>.json`, in the graph's own format plus a `filter` that records the query, the
+`_maps/search/<words>.json`, and a [graph page](#the-graph-page) that opens on it,
+`_maps/search/<words>.html`. The JSON is in the graph's own format plus a `filter` that records the query, the
 words searched, the topics they named, the depth and the last step that found something. A hit has
 `hit` (where it matched, or `text` with `matches`), a linked file has `distance`, and a summary
 added for context has `context`. It exits with 1 if nothing was found.
@@ -611,6 +636,7 @@ step 3, linked up to 1 away: 6 file(s)
   Kitchen/Session_2026-01-05.md — Planning session  (1 away)
   Kitchen/Spice rack.md — Spice rack  (1 away)
 wrote _maps/search/tomato.json
+drew _maps/search/tomato.html
 $ labbrain search brine
 looked for: brine
 step 2, the full text: 1 file(s)
@@ -620,6 +646,7 @@ step 3, linked up to 1 away: 1 file(s)
 and the summaries over them: 1 file(s)
   Shelf/Shelf_summary.md — Shelf — Summary
 wrote _maps/search/brine.json
+drew _maps/search/brine.html
 ```
 
 ## Common sequences

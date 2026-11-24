@@ -94,6 +94,7 @@ def test_the_command(vault, capsys):
         "and the summaries over them: 1 file(s)",
         "  Shelf/Shelf_summary.md — Shelf — Summary",
         "wrote _maps/search/brine.json",
+        "drew _maps/search/brine.html",
     ]
     result = json.loads((vault / "_maps" / "search" / "brine.json").read_text())
     assert result["filter"] == {

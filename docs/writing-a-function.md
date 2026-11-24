@@ -32,6 +32,7 @@ There is one module per subject, in `src/labbrain/okf/`:
 | `hierarchy.py` | the folder summaries as one tree, with the links between them |
 | `graph.py` | the wiki's graph: nodes, edges, and the cache of what each file holds |
 | `search.py` | code-only search over the graph: headers, full text, links |
+| `page.py` | the graph page; its HTML and JavaScript are in `graph_page.html` beside it |
 | `check.py` | `check`: every conformance test at once |
 
 `src/labbrain/cli.py` is the command line. It reads the settings, finds the wiki, calls functions

@@ -1,6 +1,6 @@
 ---
 name: canvas
-description: Draw the wiki's folder summaries as one tree, with the links between them, or draw any JSON or YAML file as a tree of boxes, as an Obsidian canvas or a web page. Use when asked for a map, picture, canvas, diagram, overview or hierarchy of the wiki or of its subjects, or to see how a JSON or YAML file nests. Code does all the drawing; the model runs the commands, checks the result and reports what it shows. Experimental.
+description: Draw the wiki's folder summaries as one tree, with the links between them, or draw any JSON or YAML file as a tree of boxes, as an Obsidian canvas or a web page; or draw the wiki's graph as a page to explore how files link to each other. Use when asked for a map, picture, canvas, graph, diagram, overview or hierarchy of the wiki or of its subjects, to see what relates to a file or a subject, or to see how a JSON or YAML file nests. Code does all the drawing; the model runs the commands, checks the result and reports what it shows. Experimental.
 ---
 
 # canvas: draw the wiki's summaries, or any JSON or YAML file
@@ -39,6 +39,9 @@ No step needs a note read. Never write the tree, a link or a picture by hand.
      writes `_maps/<folder>/hierarchy.yaml` and its picture. Links that leave the folder stay, so
      the picture shows how that part connects to the rest.
    - A JSON or YAML file: `labbrain canvas <file>`.
+   - How files link to each other, to explore: `labbrain graph`, then open `_maps/graph.html` in a
+     browser. For the files about a subject, `labbrain search <words>`, which also draws a page
+     that opens on them.
    - The picture is an Obsidian canvas unless the person's `LABBRAIN_VIEW` says `html`. Add
      `--view html` or `--view canvas` only if they ask for that view.
 3. **Read the result.** For the summaries, read the `hierarchy.yaml` that step 2 wrote. Look for:

@@ -36,7 +36,7 @@ jobs will run unattended at night.
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
 | `labbrain.okf.search` | code-only search over the graph: headers, then full text, then links | experimental: being tried out |
-| `labbrain.okf.graph` | the wiki's graph in `_maps/graph.json`: a cache, rebuilt from changed files only, never committed | experimental: being tried out |
+| `labbrain.okf.graph`, `.page` | the wiki's graph in `_maps/graph.json`: a cache, rebuilt from changed files only, never committed; and the page to explore it, from `graph_page.html` | experimental: being tried out |
 | `labbrain.okf.canvas`, `.hierarchy` | pictures of JSON and YAML data in `_maps/` (an Obsidian canvas or a web page), and the summaries as one tree to draw | experimental: being tried out |
 | `labbrain.cli` | `labbrain <command>`, 12 commands; reads the settings | works |
 | `labbrain.okf.config` | the wiki's own config: `labbrain.yaml` and `topics.yaml` at its root | works |

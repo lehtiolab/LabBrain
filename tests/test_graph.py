@@ -103,6 +103,7 @@ def test_the_command(vault, capsys):
     assert capsys.readouterr().out == (
         "wrote _maps/graph.json: 14 files; 18 link, 6 covers and 1 child edges; "
         "14 file(s) read, the rest unchanged\n"
+        "drew _maps/graph.html\n"
     )
     graph = json.loads((vault / "_maps" / "graph.json").read_text())
     assert list(graph) == ["title", "nodes", "edges"]

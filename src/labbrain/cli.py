@@ -22,6 +22,7 @@ from .okf.hierarchy import write_hierarchy
 from .okf.index import OKF_VERSION, build_indexes
 from .okf.links import carry_hashes, convert_links, name_index
 from .okf.notes import add_frontmatter
+from .okf.page import graph_page
 from .okf.search import search, slug
 from .okf.summaries import staleness, stamp, summaries, summary_in
 
@@ -51,11 +52,12 @@ COMMANDS = {
     "and the other summaries and files its text links to. Then draw it beside, as `canvas` does.",
     "graph": "Bring the wiki's graph up to date in _maps/graph.json: each markdown file a node; "
     "the links, the notes each summary covers, and the summaries under each summary the edges. "
-    "Reads only the files that changed since the last build.",
+    "Reads only the files that changed since the last build. Draws it as a page to explore in a "
+    "browser, _maps/graph.html.",
     "search": "Find the files about WORD..., cheapest first: their headers (title, description, "
     "path, tags, topics, with the wiki's vocabulary), then, if nothing is found or with --text, "
     "their full text; then the files linked to them, up to --depth away. No model. Writes what "
-    "it found, as a graph, to _maps/search/<words>.json.",
+    "it found, as a graph, to _maps/search/<words>.json, and a page that opens on it.",
 }
 
 
@@ -399,6 +401,9 @@ def main(argv=None):
                 fresh,
             )
         )
+        page = join(MAPS, "graph.html")
+        save(vault, page, graph_page(graph, page, wiki.hidden, wiki.file_url, wiki.topics))
+        print("drew", page)
         return 0
     if cmd == "search":
         if args.depth < 0:
@@ -438,7 +443,15 @@ def main(argv=None):
                 if why == "%(matches)d":
                     note = "  (%d match%s)" % (n["matches"], "es" if n["matches"] > 1 else "")
                 print("  %s — %s%s" % (n["id"], n["title"], note))
-        print("wrote", save(vault, join(MAPS, "search", slug(query) + ".json"), dump(found)))
+        out = join(MAPS, "search", slug(query))
+        print("wrote", save(vault, out + ".json", dump(found)))
+        start = {
+            "query": query,
+            "hits": [n["id"] for n in nodes if "hit" in n],
+            "depth": args.depth,
+        }
+        page = graph_page(graph, out + ".html", wiki.hidden, wiki.file_url, wiki.topics, start)
+        print("drew", save(vault, out + ".html", page))
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:
