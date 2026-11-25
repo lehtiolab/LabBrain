@@ -51,6 +51,13 @@ or one with a single note, stays covered by its parent's summary.
 When you have finished writing, run `labbrain stamp --by <your actor> <summary>`. It records the
 sources and their hashes, which you never write by hand.
 
+Then set the summary's topics: the topics its own text is about, at most five, the most specific
+that fit. Choose from `topics.yaml` at the wiki root first; a synonym there counts as its topic. A
+new topic only when nothing there fits what the summary is about: a short lower-case name for a
+subject, a project or a kind of data, at most three new per summary. Run
+`labbrain topics --by <your actor> <summary> <topic>...`; it refuses a vetoed topic and a fourth
+new one. `labbrain vocabulary` then adds the new ones to `topics.yaml`, for a person to review.
+
 ## Carrying changes up
 When a rebuild changes a summary's description, or what it says about the folder's state, update
 the lines about that folder in its parent summary, and so on up to the repo root. If a parent's own

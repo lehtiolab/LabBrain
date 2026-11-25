@@ -10,15 +10,24 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
+from .okf.canvas import VIEWS, NotData, draw, save
 from .okf.check import check
+from .okf.config import BadWikiConfig, wiki_config
+from .okf.curate import curate
 from .okf.drift import RECHECK, drift_stamp, hot, is_due
-from .okf.files import RESERVED, md_files, read, text_files, write
+from .okf.files import MAPS, RESERVED, join, md_files, read, text_files, write
 from .okf.frontmatter import content_hash, fm_get, split_fm
 from .okf.git import git_hashes
+from .okf.graph import GRAPH, BadRejection, dump, load_rejected, reject, write_graph
+from .okf.hierarchy import write_hierarchy
 from .okf.index import OKF_VERSION, build_indexes
 from .okf.links import carry_hashes, convert_links, name_index
 from .okf.notes import add_frontmatter
+from .okf.page import graph_page
+from .okf.search import search, slug
 from .okf.summaries import staleness, stamp, summaries, summary_in
+from .okf.topics import MAX_NEW, NoTopicsHere, NotTopics, TooManyNew, canonical, set_topics
+from .okf.vocabulary import add_topics, close_spellings, in_use, unlisted, vetoed_in_use
 
 COMMANDS = {
     "check": "Everything below; exit status 1 if anything is off.",
@@ -38,11 +47,40 @@ COMMANDS = {
     "check.",
     "drift-stamp": "After a drift check of FILE: set its drift_verification entry in each SUMMARY, "
     "by default every summary that `hot` shows as due for FILE.",
+    "canvas": "Draw each .json, .yaml or .yml FILE as a tree of boxes, into _maps/ at the wiki "
+    "root: an Obsidian canvas or an HTML page (--view, else LABBRAIN_VIEW, else canvas). Git "
+    "ignores _maps/, and nothing else in labbrain looks inside it.",
+    "hierarchy": "Write the folder summaries in each FOLDER (default: the whole wiki) as one tree "
+    "to _maps/<FOLDER>/hierarchy.yaml: each summary's title, description and child summaries, "
+    "and the other summaries and files its text links to. Then draw it beside, as `canvas` does.",
+    "graph": "Bring the wiki's graph up to date in _maps/graph.json: each ingested markdown file "
+    "(a header with a type, and listed in its folder's index.md) a node; the links, the notes "
+    "each summary covers, the summaries under each summary, and the links code proposes between "
+    "files that share two topics, the edges. Reads only the files that changed since the last "
+    "build. Draws it as a page to explore in a browser, _maps/graph.html.",
+    "search": "Find the files about WORD..., cheapest first: their headers (title, description, "
+    "path, tags, topics, with the wiki's vocabulary), then, if nothing is found or with --text, "
+    "their full text; then the files linked to them, up to --depth away. No model. Writes what "
+    "it found, as a graph, to _maps/search/<words>.json, and a page that opens on it.",
+    "topics": "Set FILE's topics: each TOPIC as the topic it names in topics.yaml, itself or by a "
+    "synonym, else as a new topic (at most %d new per file); on a summary or another agent-written "
+    "file, or on a raw note whose author allows it (annotate: true), recording ACTOR in its "
+    "annotated entry. Refuses a vetoed topic, and writes nothing then." % MAX_NEW,
+    "curate": "The graph agent's work list, from the graph: files that may have topics and have "
+    "none, files with vetoed topics, files no link reaches and the links code proposes; then the "
+    "new topics to review, the topics no file has yet and the tags in use. Exit status 1 if there "
+    "is work for the agent.",
+    "vocabulary": "Add the topics the files use that topics.yaml doesn't name to its end, with "
+    "status: new, keeping everything already in it as it is. Then list the new topics waiting for "
+    "a person to review, those spelled like another topic, and the vetoed topics files carry.",
+    "reject": "Turn down the link the graph proposes between two FILEs, as a person (--by "
+    "human:<name>, else LABBRAIN_CONTRIBUTOR): recorded in _maps/rejected.jsonl, so it isn't "
+    "proposed again. To accept one, add the link to a file.",
 }
 
 
 # Settings about the person running labbrain, never about the wiki (docs/configuration.md).
-SETTINGS = ("LABBRAIN_CONTRIBUTOR", "LABBRAIN_VAULT", "LABBRAIN_ANNOTATE")
+SETTINGS = ("LABBRAIN_CONTRIBUTOR", "LABBRAIN_VAULT", "LABBRAIN_ANNOTATE", "LABBRAIN_VIEW")
 # ponytail: the env file of the checkout labbrain runs from. An installed wheel has none, so it
 # needs LABBRAIN_ENV; a per-user config folder is the upgrade if that becomes the common case.
 ENV_FILE = Path(__file__).resolve().parents[2] / "env" / ".env"
@@ -80,7 +118,8 @@ class BadSetting(Exception):
 
 def settings(environ, env_file=ENV_FILE):
     """SETTINGS from the env file ($LABBRAIN_ENV, else env_file), each one overridden by environ;
-    None where unset or empty, and LABBRAIN_ANNOTATE as a bool (unset: False)."""
+    None where unset or empty, LABBRAIN_ANNOTATE as a bool (unset: False), and LABBRAIN_VIEW
+    (unset: canvas)."""
     path = os.path.expanduser(environ.get("LABBRAIN_ENV") or str(env_file))
     if environ.get("LABBRAIN_ENV") and not os.path.exists(path):
         raise BadSetting("LABBRAIN_ENV", path, "an existing file")
@@ -89,7 +128,7 @@ def settings(environ, env_file=ENV_FILE):
         if k.startswith("LABBRAIN_") and k not in SETTINGS:
             raise BadSetting(k, found[k], "one of %s (in %s)" % (", ".join(SETTINGS), path))
     out = {k: environ.get(k) or found.get(k) or None for k in SETTINGS}
-    who, vault, annotate = (out[k] for k in SETTINGS)
+    who, vault, annotate, view = (out[k] for k in SETTINGS)
     if who and not CONTRIBUTOR_RE.fullmatch(who):
         raise BadSetting("LABBRAIN_CONTRIBUTOR", who, "human:<name>, without an email address")
     if (annotate or "false").lower() not in ("true", "false"):
@@ -97,6 +136,9 @@ def settings(environ, env_file=ENV_FILE):
     out["LABBRAIN_ANNOTATE"] = (annotate or "").lower() == "true"
     if out["LABBRAIN_ANNOTATE"] and not who:  # the preference is one person's, about their notes
         raise BadSetting("LABBRAIN_ANNOTATE", annotate, "LABBRAIN_CONTRIBUTOR set as well")
+    out["LABBRAIN_VIEW"] = view = view or "canvas"
+    if view not in VIEWS:
+        raise BadSetting("LABBRAIN_VIEW", view, " or ".join(VIEWS))
     if vault:
         out["LABBRAIN_VAULT"] = vault = os.path.abspath(os.path.expanduser(vault))
         if not declares_okf(vault):
@@ -152,6 +194,30 @@ def parser():
     )
     cmds["stamp"].add_argument("files", nargs="*", metavar="SUMMARY")
     cmds["links"].add_argument("files", nargs="*", metavar="FILE")
+    cmds["canvas"].add_argument("files", nargs="*", metavar="FILE")
+    cmds["hierarchy"].add_argument("files", nargs="*", metavar="FOLDER")
+    cmds["topics"].add_argument(
+        "--by", metavar="ACTOR", help="who chose them, e.g. claude-code/claude-opus-5-5"
+    )
+    cmds["topics"].add_argument("files", nargs=1, metavar="FILE")
+    cmds["topics"].add_argument("topic", nargs="+", metavar="TOPIC")
+    cmds["reject"].add_argument(
+        "--by",
+        metavar="ACTOR",
+        help="who turns it down, as human:<name> (default: LABBRAIN_CONTRIBUTOR)",
+    )
+    cmds["reject"].add_argument("files", nargs=2, metavar="FILE")
+    cmds["search"].add_argument("query", nargs="+", metavar="WORD")
+    cmds["search"].add_argument(
+        "--depth", type=int, default=1, help="follow links this far from each hit (default 1)"
+    )
+    cmds["search"].add_argument(
+        "--text", action="store_true", help="search the full text too, even if headers match"
+    )
+    for name in ("canvas", "hierarchy"):
+        cmds[name].add_argument(
+            "--view", choices=VIEWS, help="canvas or html (default: LABBRAIN_VIEW, else canvas)"
+        )
     cmds["drift-stamp"].add_argument("files", nargs="*", metavar="FILE [SUMMARY...]")
     cmds["hot"].add_argument("--days", type=int, default=30, help="window (default 30)")
     cmds["hot"].add_argument("--min", type=int, default=3, help="changes to be hot (default 3)")
@@ -163,6 +229,14 @@ def parser():
             help="changes since a check that make it due (default %d)" % RECHECK,
         )
     return p
+
+
+def waiting(graph):
+    """How many files the graph leaves out, and why."""
+    return (
+        "%d file(s) not ingested yet: no header with a type, or not listed in their folder's "
+        "index.md" % len(graph["waiting"])
+    )
 
 
 def main(argv=None):
@@ -187,15 +261,25 @@ def main(argv=None):
         print("no such folder:", vault)
         return 2
     vault = os.path.abspath(vault)
+    try:  # a bad wiki config stops every command, before anything is written
+        wiki = wiki_config(vault)
+    except BadWikiConfig as e:
+        print(e)
+        return 2
     cmd = args.cmd
     try:  # all of them before any command writes anything
         rest = [rel_arg(vault, p) for p in getattr(args, "files", [])]
     except OutsideVault as e:
         print(e)
         return 2
+    try:  # people's decisions, so a damaged record stops the commands that use them
+        rejected = load_rejected(vault) if cmd in ("graph", "search", "curate", "reject") else None
+    except BadRejection as e:
+        print(e)
+        return 2
 
     if cmd == "check":
-        problems = check(vault)
+        problems = check(vault, wiki.topics)
         for p, msg in problems:
             print("%s: %s" % (p, msg))
         print(
@@ -321,6 +405,206 @@ def main(argv=None):
                     "       cited by  %s (%d link%s; %s)"
                     % (f, k, "s" if k > 1 else "", drift(checks[f]))
                 )
+        return 0
+    if cmd == "canvas":
+        if not rest:
+            print("usage: canvas FILE...   (.json, .yaml or .yml files of the wiki)")
+            return 2
+        try:
+            for p in draw(vault, rest, args.view or cfg["LABBRAIN_VIEW"]):
+                print("drew", p)
+        except NotData as e:
+            print(e)
+            return 2
+        return 0
+    if cmd == "hierarchy":
+        folders = ["" if p == os.curdir else p for p in rest] or [""]
+        wrong = [p for p in folders if not os.path.isdir(os.path.join(vault, p))]
+        for p in wrong:
+            print("not a folder:", p)
+        if wrong:
+            return 2
+        for top in folders:
+            tree = write_hierarchy(vault, top)
+            print("wrote", tree)
+            for p in draw(vault, [tree], args.view or cfg["LABBRAIN_VIEW"]):
+                print("drew", p)
+        return 0
+    if cmd == "graph":
+        graph, fresh = write_graph(vault, rejected, wiki.topics)
+        kinds = [e["kind"] for e in graph["edges"]]
+        print(
+            "wrote %s: %d files; %d link, %d covers, %d child and %d proposed edges; %d file(s) "
+            "read, the rest unchanged"
+            % (
+                GRAPH,
+                len(graph["nodes"]),
+                *(kinds.count(k) for k in ("link", "covers", "child", "proposed")),
+                fresh,
+            )
+        )
+        if graph["waiting"]:
+            print("%s:" % waiting(graph))
+            for p in graph["waiting"]:
+                print("  " + p)
+        page = join(MAPS, "graph.html")
+        save(vault, page, graph_page(graph, page, wiki.hidden, wiki.file_url, wiki.topics))
+        print("drew", page)
+        return 0
+    if cmd == "search":
+        if args.depth < 0:
+            print("usage: search WORD... [--depth N]   (N is 0 or more)")
+            return 2
+        query = " ".join(args.query)
+        graph, _ = write_graph(vault, rejected, wiki.topics)
+        found = search(vault, graph, query, wiki.topics, args.depth, args.text)
+        how = found["filter"]
+        named = " (topics: %s)" % ", ".join(how["topics"]) if how["topics"] else ""
+        print("looked for: %s%s" % (", ".join(how["words"]), named))
+        if graph["waiting"]:
+            print("not searched: %s (labbrain graph lists them)" % waiting(graph))
+        nodes = found["nodes"]
+        if not any("hit" in n for n in nodes):
+            print("nothing found")
+            return 1
+        groups = [  # (heading, files, why each is there)
+            (
+                "step 1, the headers",
+                [n for n in nodes if n.get("hit", "text") != "text"],
+                "%(hit)s",
+            ),
+            ("step 2, the full text", [n for n in nodes if n.get("hit") == "text"], "%(matches)d"),
+            (
+                "step 3, linked up to %d away" % args.depth,
+                [n for n in nodes if "distance" in n],
+                "%(distance)d away",
+            ),
+            ("and the summaries over them", [n for n in nodes if "context" in n], ""),
+        ]
+        groups[1][1].sort(key=lambda n: -n["matches"])
+        groups[2][1].sort(key=lambda n: n["distance"])
+        for heading, group, why in groups:
+            if group:
+                print("%s: %d file(s)" % (heading, len(group)))
+            for n in group:
+                note = "  (%s)" % (why % n) if why else ""
+                if why == "%(matches)d":
+                    note = "  (%d match%s)" % (n["matches"], "es" if n["matches"] > 1 else "")
+                print("  %s — %s%s" % (n["id"], n["title"], note))
+        out = join(MAPS, "search", slug(query))
+        print("wrote", save(vault, out + ".json", dump(found)))
+        start = {
+            "query": query,
+            "hits": [n["id"] for n in nodes if "hit" in n],
+            "depth": args.depth,
+        }
+        page = graph_page(graph, out + ".html", wiki.hidden, wiki.file_url, wiki.topics, start)
+        print("drew", save(vault, out + ".html", page))
+        return 0
+    if cmd == "curate":
+        graph, _ = write_graph(vault, rejected, wiki.topics)
+        work = curate(graph, wiki.topics)
+        if not wiki.topics:
+            print(
+                "no topics.yaml yet: every topic set now is new, and labbrain vocabulary adds it "
+                "there"
+            )
+        sections = [  # (heading, files, show their descriptions)
+            ("summaries without topics", work["summaries"], True),
+            ("other files that may have topics and have none", work["others"], True),
+            ("files with vetoed topics, to choose others for", work["vetoed"], False),
+            ("files no link reaches, for their authors", work["unlinked"], False),
+        ]
+        for heading, nodes, describe in sections:
+            print("%s (%d)%s" % (heading, len(nodes), ":" if nodes else ""))
+            for n in nodes:
+                print("  %s — %s" % (n["id"], n["title"]))
+                if describe and n.get("description"):
+                    print("      " + n["description"])
+        print(
+            "links proposed between files that share topics, for their authors (%d)%s"
+            % (len(work["proposed"]), ":" if work["proposed"] else "")
+        )
+        for a, b, shared in work["proposed"]:
+            print("  %s — %s  (both: %s)" % (a, b, ", ".join(shared)))
+        if graph["waiting"]:
+            print(
+                "left out, not for the graph agent: %s (labbrain graph lists them)" % waiting(graph)
+            )
+        if work["review"]:
+            print("new topics, for a person to review in topics.yaml: " + ", ".join(work["review"]))
+        if work["unused"]:
+            print("topics no file has yet: " + ", ".join(work["unused"]))
+        if work["tags"]:
+            print("tags in use: " + ", ".join("%s (%d)" % t for t in work["tags"]))
+        todo = any(work[k] for k in ("summaries", "others", "vetoed"))
+        print("work for the graph agent" if todo else "nothing for the graph agent to do")
+        return 1 if todo else 0
+    if cmd == "reject":
+        by = args.by or cfg["LABBRAIN_CONTRIBUTOR"]
+        if not by or not CONTRIBUTOR_RE.fullmatch(by):  # turning a link down is a person's call
+            print(
+                "usage: reject --by human:<name> FILE FILE   (a person, never an agent or an email "
+                "address; or set LABBRAIN_CONTRIBUTOR)"
+            )
+            return 2
+        pair = tuple(sorted(rest))
+        graph, _ = write_graph(vault, rejected, wiki.topics)
+        if not any(
+            e["kind"] == "proposed" and (e["from"], e["to"]) == pair for e in graph["edges"]
+        ):
+            print("not a link the graph proposes: %s — %s" % pair)
+            return 2
+        reject(vault, pair, by)
+        write_graph(vault, rejected | {pair}, wiki.topics)
+        print("rejected %s — %s; `labbrain graph` redraws the page without it" % pair)
+        return 0
+    if cmd == "topics":
+        if not args.by or "@" in args.by:
+            print("usage: topics --by ACTOR FILE TOPIC...   (an actor, never an email address)")
+            return 2
+        try:
+            names, new = canonical(args.topic, wiki.topics)
+            changed = set_topics(vault, rest[0], names, args.by)
+        except (NotTopics, TooManyNew, NoTopicsHere) as e:
+            print(e)
+            return 2
+        print(
+            "%s %s: %s" % ("set topics of" if changed else "unchanged:", rest[0], ", ".join(names))
+        )
+        if new:
+            print("new: %s (labbrain vocabulary adds them to topics.yaml)" % ", ".join(new))
+        return 0
+    if cmd == "vocabulary":
+        used = in_use(vault)
+        new = unlisted(used, wiki.topics)
+        if new:
+            try:
+                add_topics(vault, new, wiki.topics)
+            except BadWikiConfig as e:
+                print(e)
+                return 2
+            print("added to topics.yaml, with status: new (%d): %s" % (len(new), ", ".join(new)))
+        else:
+            print("topics.yaml names every topic in use")
+        topics = wiki_config(vault).topics
+        review = [n for n, t in topics.items() if t.get("status") == "new"]
+        print(
+            "new, for a person to review (%d)%s"
+            % (len(review), ": " + ", ".join(review) if review else "")
+        )
+        close = close_spellings(topics)
+        if close:
+            print("spelled like another topic, to merge or keep (%d):" % len(close))
+            for n, w, m in close:
+                print("  %s — %s%s" % (n, w, "" if w == m else " (a synonym of %s)" % m))
+        for n, files in vetoed_in_use(used, topics).items():
+            print(
+                "vetoed, still on %d file(s), to choose others for (run: topics): %s"
+                % (len(files), n)
+            )
+            for f in files:
+                print("  " + f)
         return 0
     if cmd == "drift-stamp":
         if not args.by or not rest:

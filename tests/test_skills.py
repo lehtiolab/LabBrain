@@ -26,6 +26,8 @@ def test_there_are_skills():
         "summary-writing",
         "index",
         "drift",
+        "canvas",
+        "graph",
         "update-docs",
     }
 

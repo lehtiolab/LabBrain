@@ -3,15 +3,17 @@
 import os
 import re
 
-from .files import is_repo_root, join, md_files, read
+from .files import TOPICS, is_repo_root, join, md_files, read
 from .frontmatter import fm_blocks, fm_drift, fm_get, split_fm
 from .index import build_indexes, index_targets
 from .links import link_problems
 from .notes import agent_files
 from .summaries import staleness, summaries
+from .vocabulary import in_use, unlisted, vetoed_in_use
 
 
-def check(vault):
+def check(vault, topics):
+    """Every problem in the wiki, as (path, message); topics is the wiki's vocabulary."""
     problems = []
     for p in md_files(vault):
         base = os.path.basename(p)
@@ -36,6 +38,18 @@ def check(vault):
             problems.append((p, "no frontmatter (run: frontmatter)"))
         elif not fm_get(fm, "type"):
             problems.append((p, "frontmatter has no type (run: frontmatter)"))
+    used = in_use(vault)
+    vetoed = vetoed_in_use(used, topics)
+    for p in sorted({f for files in vetoed.values() for f in files}):
+        names = [n for n, files in vetoed.items() if p in files]
+        problems.append(
+            (p, "vetoed in topics.yaml, choose others (run: topics): " + ", ".join(names))
+        )
+    absent = unlisted(used, topics)
+    if absent:
+        problems.append(
+            (TOPICS, "topics in use it doesn't list (run: vocabulary): " + ", ".join(absent))
+        )
     for s in summaries(vault):
         for kind, detail in staleness(vault, s):
             problems.append((s, "stale: %s %s" % (kind, detail)))

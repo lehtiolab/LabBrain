@@ -48,7 +48,7 @@ that doesn't exist, it prints `no such folder: DIR` and exits with 2.
 the wiki without `--vault`.
 
 ## File arguments
-`stamp`, `links` and `drift-stamp` take file paths.
+`stamp`, `links`, `drift-stamp`, `canvas`, `topics` and `reject` take file paths, and `hierarchy` takes folders.
 - **They are relative to where you run the command,** like any shell command, not to the wiki's
   root. From the root you write `Garden/Garden_summary.md`; from inside `Garden/`, `Garden_summary.md`.
   Absolute paths work too.
@@ -57,20 +57,21 @@ the wiki without `--vault`.
   before it that were fine.
 
 ## Actors: `--by`
-`stamp`, `drift-stamp` and `frontmatter` write who did the work into the files they change:
+`stamp`, `drift-stamp`, `frontmatter`, `topics` and `reject` write who did the work into the files they change:
 - **an agent,** as `<tool>/<model>`: `claude-code/claude-opus-5-5`, `open-llm/qwen3-235b`;
 - **a person,** as `human:<name>`: `human:ada`.
 
 Never write an email address in an actor. `stamp` and `drift-stamp` have no default, because the
 actor must name the model that actually did the work. `frontmatter` falls back to
-`LABBRAIN_CONTRIBUTOR` (see [Configuration](configuration.md)).
+`LABBRAIN_CONTRIBUTOR` (see [Configuration](configuration.md)). `reject` takes a person only, and
+falls back to `LABBRAIN_CONTRIBUTOR` too.
 
 ## Exit status
 | status | means |
 |---|---|
 | 0 | done; or nothing to do, or nothing wrong |
-| 1 | `check` found problems, `stale` found stale summaries, or `drift-stamp` was named a file that isn't a summary |
-| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, or a bad setting. Nothing was written |
+| 1 | `check` found problems, `stale` found stale summaries, `drift-stamp` was named a file that isn't a summary, `search` found nothing, or `curate` found work for the graph agent |
+| 2 | the command couldn't run: a missing argument, no wiki found, a path outside the wiki, a missing file, a file `stamp` won't take, a file `canvas` can't draw, a `hierarchy` folder that isn't one, a topic `topics` won't write (vetoed, or a fourth new one), a `topics.yaml` that `vocabulary` can't add to, two files `reject` doesn't find among the proposed links, an agent as `reject`'s actor, a bad record in `_maps/rejected.jsonl`, a bad setting, or a bad wiki config. Nothing was written |
 
 So `labbrain check || echo "the wiki needs attention"` works in a script or a scheduled job.
 
@@ -85,6 +86,14 @@ So `labbrain check || echo "the wiki needs attention"` works in a script or a sc
 | [`links`](#labbrain-links) | the notes' link syntax, and the hashes recorded in summaries |
 | [`hot`](#labbrain-hot) | nothing |
 | [`drift-stamp`](#labbrain-drift-stamp) | the summaries' `drift_verification` |
+| [`canvas`](#labbrain-canvas) | pictures in `_maps/`, which git ignores |
+| [`hierarchy`](#labbrain-hierarchy) | `_maps/hierarchy.yaml` and its picture |
+| [`graph`](#labbrain-graph) | `_maps/graph.json`, the wiki's graph |
+| [`search`](#labbrain-search) | the graph, and what it found in `_maps/search/` |
+| [`topics`](#labbrain-topics) | a file's `topics`, and on a raw note its `annotated` entry |
+| [`vocabulary`](#labbrain-vocabulary) | `topics.yaml`: the topics files use that it doesn't list yet, added at its end |
+| [`curate`](#labbrain-curate) | the graph, in `_maps/` |
+| [`reject`](#labbrain-reject) | `_maps/rejected.jsonl`, the proposed links people turned down |
 
 The examples below are real output from the dummy wiki in `tests/fixtures/vault/`.
 
@@ -107,6 +116,8 @@ and exits with 0, or with `N problem(s).` and exits with 1.
 | `out of date (run: index)` | an `index.md` differs from what `index` would write | `labbrain index` |
 | `wikilink [[…]] (run: links)` | a `[[wikilink]]`, in any file | `labbrain links` |
 | `broken <link>` | a relative link to a file that doesn't exist, in an agent-written file | fix the link |
+| `vetoed in topics.yaml, choose others (run: topics): …` | a file carries a topic that a person vetoed | `labbrain topics` with other topics: the graph agent's work |
+| `topics.yaml: topics in use it doesn't list (run: vocabulary): …` | files carry topics that the vocabulary doesn't name yet | `labbrain vocabulary` |
 
 Broken links are only reported in agent-written files (summaries, agent guides, session summaries,
 paper concepts and `index.md`). A raw note may link to a note that hasn't been written yet.
@@ -142,8 +153,9 @@ It ends with `N stale summary(ies).` and exits with 1 if N isn't 0.
 
 **What a summary covers:** every text file in its folder (`.md`, `.canvas`, `.sh`, `.nix`, `.lock`,
 `.txt`, `.py`, `.json`, `.yaml`, `.yml`, `.toml`), and those in subfolders without a summary of their
-own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, and anything in
-another git repo. Images and data files are attachments, not sources.
+own. It leaves out other summaries, `index.md`, `log.md`, hidden files and folders, anything in
+another git repo, `_maps/` at the root of the wiki or of any git repo in it, where labbrain draws
+its pictures, and the wiki's own config, `labbrain.yaml` and `topics.yaml` at its root. Images and data files are attachments, not sources.
 
 The hash is taken of the file on disk, so uncommitted edits count.
 
@@ -407,6 +419,412 @@ $ labbrain drift-stamp --by claude-code/claude-opus-5-5 Garden/Tomatoes.md
 drift-stamped Garden/Garden_summary.md
 $ labbrain drift-stamp --by claude-code/claude-opus-5-5 Garden/Tomatoes.md
 nothing due for Garden/Tomatoes.md
+```
+
+### labbrain canvas
+```
+labbrain canvas FILE... [--view canvas|html] [--vault DIR]
+```
+Draws each `.json`, `.yaml` or `.yml` FILE as a tree of boxes, so you can see how the data nests.
+- **The view** is `--view`, else `LABBRAIN_VIEW` (see [Configuration](configuration.md)), else
+  `canvas`:
+  - `canvas`: an Obsidian canvas ([JSON Canvas](https://jsoncanvas.org)), which Obsidian opens;
+  - `html`: one web page, with nothing loaded from the internet.
+- **The picture goes in `_maps/` at the wiki root,** at the file's own path with the view's
+  extension: `Garden/plan.yaml` becomes `_maps/Garden/plan.canvas`. With `--vault` naming an inner
+  bundle, the root is that bundle's. A file already in `_maps/` gets
+  its picture beside it. Drawing a file again replaces its picture.
+- **`_maps/` is never part of the wiki.** labbrain writes `_maps/.gitignore`, so git ignores the
+  folder, and no other command looks inside it: no summary covers it, and no listing shows it. That
+  holds for a `_maps/` at the root of any git repo in the wiki too, such as one drawn with `--vault`.
+
+**What goes in a box:**
+- A mapping or a list is a box, titled by its key. A list item has no title.
+- A value that is neither, such as a number or a short text, is a line in its parent's box:
+  `budget: 120`, or `- basil` for a list item. Each nested mapping or list is a box of its own, with
+  an arrow from its parent.
+- **Some keys shape the picture** instead of showing as `key: value`:
+
+  | key | does |
+  |---|---|
+  | `title` | titles the box |
+  | `description` | a line in the box, without its key |
+  | `path` | when it names a file in the wiki, the title links to that file |
+  | `children` | a list whose items are boxes under this one, without a `children` box between |
+  | `links` | wiki files this box links to: one line at the end of the box, `→ Garden — Summary · Beans`, each name a link to its file. A name is the file's `title`, else its file name. There are no arrows for links: on a real wiki they tangled |
+
+A `path` or a link that isn't a file in the wiki is shown as text. In a canvas, click a title or a
+link's name to open its file. In a page, they are links to the files.
+
+YAML is read with PyYAML's `safe_load`, so a file can't make labbrain run anything. A file that
+isn't JSON or YAML, doesn't exist, or doesn't parse is refused with `can't draw <file>: <why>`. Every
+FILE is read before any picture is written, so one bad file means nothing is written, and the exit
+status is 2.
+
+```
+$ labbrain canvas Garden/plan.yaml
+drew _maps/Garden/plan.canvas
+$ labbrain canvas --view html Garden/plan.yaml Garden/Tomatoes.md
+can't draw Garden/Tomatoes.md: not a .json, .yaml or .yml file
+```
+
+### labbrain hierarchy
+```
+labbrain hierarchy [FOLDER...] [--view canvas|html] [--vault DIR]
+```
+Writes the folder summaries in each FOLDER as one tree, then draws it beside, as
+[`canvas`](#labbrain-canvas) does. With no FOLDER, it draws the whole wiki.
+
+| FOLDER | writes |
+|---|---|
+| none | `_maps/hierarchy.yaml`, and `_maps/hierarchy.canvas` or `.html` |
+| `Garden` | `_maps/Garden/hierarchy.yaml`, and `_maps/Garden/hierarchy.canvas` or `.html` |
+
+Each is rewritten on every run. A FOLDER is relative to where you run the command, like a file
+argument: from inside `Garden/`, `labbrain hierarchy .` draws `Garden`. A FOLDER that doesn't exist
+is refused with `not a folder: <folder>`, and nothing is written. It reads only the summaries'
+frontmatter and links: no model, and no note is read.
+- **Each summary sits under the summary of the folder above it,** as `stamp` would record its
+  `parent`.
+- **The top of the tree** is FOLDER's own summary, when every other summary in FOLDER sits under
+  it. Otherwise it is the folder itself, titled with its name, with its `index.md` as its `path`.
+  For the whole wiki that is usually the wiki, because the top summary of each git repo in it has
+  no parent.
+- **Each summary has** its `title`, its `path`, its `description` if it has one, its `links` and
+  its `children`.
+- **`links` are what its text links to outside its own part of the tree:**
+  - a link to a note becomes a link to the summary that covers the note, inside FOLDER or not,
+    so a part of the wiki shows how it connects to the rest;
+  - a link to a file no summary covers stays a link to the file;
+  - links to its own notes, its parent and its children are left out, since the tree shows them;
+  - broken links, links inside code and web links are left out.
+
+```
+$ labbrain hierarchy
+wrote _maps/hierarchy.yaml
+drew _maps/hierarchy.canvas
+$ cat _maps/hierarchy.yaml
+# Written by `labbrain hierarchy` from the folder summaries, and rewritten on every run.
+title: vault
+path: index.md
+children:
+- title: Garden — Summary
+  path: Garden/Garden_summary.md
+  description: Trials of tomatoes and beans in the test garden, with soil notes.
+  links:
+  - Kitchen/Recipes.md
+  children:
+  - title: Soil — Summary
+    path: Garden/Soil/Soil_summary.md
+    description: Compost notes for the garden beds.
+- title: Shelf — Summary
+  path: Shelf/Shelf_summary.md
+  description: Jars kept on the shelf.
+```
+The picture is only as current as the summaries: run `labbrain stale` first.
+
+### labbrain graph
+```
+labbrain graph [--vault DIR]
+```
+Brings the wiki's graph up to date in `_maps/graph.json`, and draws it as a page to explore in a
+browser, `_maps/graph.html` (see [The graph page](#the-graph-page)). The graph is a cache: code builds it from
+the wiki, nobody edits it, and git ignores it, like everything in `_maps/`. Throw it away and the
+next run builds the same one.
+
+- **Each ingested markdown file is a node:** one whose header has a `type`, and that the `index.md`
+  of its own folder lists. A new note joins the graph once `labbrain frontmatter` and
+  `labbrain index` have run; editing it later doesn't take it out. A link to a file from another
+  folder's `index.md` (the map, a related block) doesn't count.
+- **The files not ingested yet are the graph's `waiting` list.** The command prints them, and
+  `search` and `curate` say how many they left out. No edge leads to them. `index.md` and `log.md`
+  are never nodes: they link to everything around them.
+- **A node** has the file's path as its `id`, and its `type`, `title`, `description`, `tags` and
+  `topics` from its header, where it has them, and `annotate: true` where its author allows agent
+  metadata. A `title` comes from the header, else the first
+  `# heading`, else the file name. `hash` is the file's git blob hash.
+- **Edges have a `kind`:**
+
+  | kind | from | to |
+  |---|---|---|
+  | `link` | a file | a file its text links to, by `[[wikilink]]` or relative link, resolved the way Obsidian resolves it |
+  | `covers` | a summary | a note it is built from (one of its `sources`) |
+  | `child` | a summary | the summary of a subfolder under it |
+  | `proposed` | a file | a file it shares two topics or more with, when no other edge joins them and neither file's folder holds the other's |
+
+  Links inside code, to files that don't exist, to files that aren't markdown or aren't ingested,
+  and to the file itself make no edge.
+- **Proposed links are for people: code proposes them and never writes a link.** An author accepts
+  one by adding the link to a file, and the proposal goes. A person turns one down with
+  [`labbrain reject`](#labbrain-reject), and it isn't proposed again.
+  - Files in the same folder, or one in a folder under the other's, aren't proposed: the summary
+    tree already relates them. The wiki's root holds every folder, so a file at the root is never
+    proposed.
+  - Topics match by name only. Finding relations that aren't this obvious is planned.
+- **The same wiki always gives the same file:** nodes and edges are sorted, and nothing in it
+  depends on the time or on who ran it. Anyone who builds it from the same commits, with the same
+  rejections, gets the same bytes.
+- **Only changed files are read.** `_maps/graph-cache.json` keeps what was read from each file and
+  each `index.md`, under its git blob hash, and a file whose hash hasn't changed isn't read again.
+  Links are resolved again on every run, since a new file can change where `[[Beans]]` leads.
+
+```json
+{
+ "title": "vault",
+ "nodes": [
+  {"id": "Garden/Garden_summary.md", "type": "Folder Summary", "title": "Garden — Summary",
+   "description": "Trials of tomatoes and beans in the test garden, with soil notes.", "hash": "…"},
+  {"id": "Garden/Tomatoes.md", "type": "Note", "title": "Tomatoes", "hash": "…"}
+ ],
+ "edges": [
+  {"from": "Garden/Garden_summary.md", "to": "Garden/Soil/Soil_summary.md", "kind": "child"},
+  {"from": "Garden/Garden_summary.md", "to": "Garden/Tomatoes.md", "kind": "covers"},
+  {"from": "Garden/Tomatoes.md", "to": "Kitchen/Recipes.md", "kind": "link"}
+ ],
+ "waiting": ["Garden/Beans.md", "Kitchen/Shopping.md"]
+}
+```
+
+```
+$ labbrain graph
+wrote _maps/graph.json: 11 files; 13 link, 4 covers, 1 child and 0 proposed edges; 19 file(s) read, the rest unchanged
+2 file(s) not ingested yet: no header with a type, or not listed in their folder's index.md:
+  Garden/Beans.md
+  Kitchen/Shopping.md
+drew _maps/graph.html
+$ labbrain graph
+wrote _maps/graph.json: 11 files; 13 link, 4 covers, 1 child and 0 proposed edges; 0 file(s) read, the rest unchanged
+2 file(s) not ingested yet: no header with a type, or not listed in their folder's index.md:
+  Garden/Beans.md
+  Kitchen/Shopping.md
+drew _maps/graph.html
+```
+
+#### The graph page
+One HTML file with the whole graph inside it. It loads nothing from anywhere else, so it works
+opened from disk or from a server, in any browser, without Obsidian.
+- **It opens at the wiki's root,** with the top summaries around it, and the files 1 step further
+  out (`Depth`, 0 to 3). A page drawn by `labbrain search` opens on what the search found instead.
+- **Click a file to put it in the middle,** with the files around it in rings: 1 away, 2 away, and
+  so on. The browser's back button goes back to the view before.
+- **Search** by title, description, path, tags and topics, with the wiki's vocabulary, as step 1 of
+  [`labbrain search`](#labbrain-search). The full text isn't in the page: for that, run
+  `labbrain search --text`.
+- **Show and hide:** which edges to follow (links, the summary tree, a summary's notes, proposed
+  links); the
+  summaries over the notes in view; each note type; and only the paths that contain some text. The
+  types in `graph.hidden` (see [the wiki's own config](configuration.md#the-wikis-own-config)) start
+  hidden.
+- **The side panel** lists everything in view, by distance, with a link to open each file. Links
+  lead to `graph.file_url` if the wiki's config sets one, else to the files beside `_maps/`.
+- **Proposed links are dashed.** The side panel lists those of the file in the middle, with the
+  topics both files have. To accept one, add the link to a file; to turn it down, run
+  [`labbrain reject`](#labbrain-reject).
+- **Colours:** summaries blue (and drawn larger), notes orange, the concepts drafted from papers
+  (`Paper`, `Method`, `Finding`, …) aqua, and every other type grey. Light or dark follows your
+  system.
+- **More than 350 files in view** and the outer rings are cut: lower the depth or hide some types.
+
+### labbrain search
+```
+labbrain search WORD... [--depth N] [--text] [--vault DIR]
+```
+Finds the files about WORD..., taken together as one phrase, with code only: no model reads
+anything. It brings [the graph](#labbrain-graph) up to date first, then climbs from the cheapest
+step and stops when one finds something:
+
+| step | looks at | reads files |
+|---|---|---|
+| 1. the headers | each file's title, description, path, `tags` and `topics` | no: they are in the graph |
+| 2. the full text | each file's text; only if step 1 found nothing, or with `--text` | yes |
+| 3. the links | the files linked to or from what was found, up to `--depth` away (default 1), and the summaries that cover them | no |
+
+- **The wiki's vocabulary widens the words** (see [the wiki's own config](configuration.md#the-wikis-own-config)).
+  A word that names a topic, or one of its synonyms, also finds the topic's other synonyms and its
+  narrower topics: with `cancer: {synonyms: [tumour], narrower: [neoantigen]}`, `tumour` finds files
+  about cancer and neoantigens.
+- **A word matches from the start of a word,** in any case: `tomato` finds *Tomatoes*, but `omato`
+  finds nothing. `-` and `_` count as spaces, so `dna-storage` finds *Synthetic_DNA_storage*.
+  `tags` and `topics` must match whole.
+- **Step 3 follows `link` edges only,** in both directions, never proposed ones. A summary that
+  covers a file found is added for context, but its other notes aren't.
+- **Only ingested files are searched** (see [the graph](#labbrain-graph)). When some aren't,
+  `not searched: …` says how many, and `labbrain graph` lists them.
+
+It prints the files by step, with why each is there, then writes what it found to
+`_maps/search/<words>.json`, and a [graph page](#the-graph-page) that opens on it,
+`_maps/search/<words>.html`. The JSON is in the graph's own format plus a `filter` that records the query, the
+words searched, the topics they named, the depth and the last step that found something. A hit has
+`hit` (where it matched, or `text` with `matches`), a linked file has `distance`, and a summary
+added for context has `context`. It exits with 1 if nothing was found.
+
+```
+$ labbrain search tomato
+looked for: tomato
+not searched: 2 file(s) not ingested yet: no header with a type, or not listed in their folder's index.md (labbrain graph lists them)
+step 1, the headers: 2 file(s)
+  Garden/Garden_summary.md — Garden — Summary  (description)
+  Garden/Tomatoes.md — Tomatoes  (title)
+step 3, linked up to 1 away: 5 file(s)
+  Garden/Seeds/Pumpkin.md — Pumpkin  (1 away)
+  Garden/Soil/Soil_summary.md — Soil — Summary  (1 away)
+  Kitchen/Recipes.md — Recipes  (1 away)
+  Kitchen/Session_2026-01-05.md — Planning session  (1 away)
+  Kitchen/Spice rack.md — Spice rack  (1 away)
+wrote _maps/search/tomato.json
+drew _maps/search/tomato.html
+$ labbrain search brine
+looked for: brine
+not searched: 2 file(s) not ingested yet: no header with a type, or not listed in their folder's index.md (labbrain graph lists them)
+step 2, the full text: 1 file(s)
+  Kitchen/Pickling.md — Pickling  (3 matches)
+step 3, linked up to 1 away: 1 file(s)
+  Shelf/Jars.md — Jars  (1 away)
+and the summaries over them: 1 file(s)
+  Shelf/Shelf_summary.md — Shelf — Summary
+wrote _maps/search/brine.json
+drew _maps/search/brine.html
+```
+
+### labbrain topics
+```
+labbrain topics --by ACTOR FILE TOPIC... [--vault DIR]
+```
+Sets FILE's `topics` to the TOPICs. A model chooses them, from the wiki's vocabulary in
+`topics.yaml` first (see [the wiki's own config](configuration.md#the-wikis-own-config)); this
+command checks them and writes them, so a model never edits a header by hand.
+- **A TOPIC that names a topic is written as that topic,** itself or by one of its synonyms, in any
+  case or spacing: with `garden: {synonyms: [beds]}`, `Beds` writes `garden`.
+- **Any other word is a new topic,** written in lower case with hyphens (`Seed Saving` writes
+  `seed-saving`), and used as soon as it is written. It prints `new: …`;
+  [`labbrain vocabulary`](#labbrain-vocabulary) then adds it to `topics.yaml` for a person to
+  review.
+- **At most 3 of a file's topics may be new.** A fourth, a topic vetoed in `topics.yaml`, or a word
+  with no letter or digit, and it prints why, exits with 2 and writes nothing.
+- **It replaces the file's topics** with these, in this order. The same topics again change nothing.
+- **Which files:**
+
+  | FILE | what is written |
+  |---|---|
+  | a folder summary | `topics`, in the summary's key order |
+  | another agent-written file (session summary, agent guide, paper concept) | `topics` |
+  | a raw note whose header says `annotate: true` | `topics`, after the author's own keys, and ACTOR's entry in `annotated` |
+  | a raw note without it, `index.md`, `log.md`, a file without a header | nothing: it refuses, and exits with 2 |
+
+  A raw note's text is never touched, only its header.
+- **ACTOR** is who chose the topics, as for `stamp`; never an email address.
+
+```
+$ labbrain topics --by claude-code/claude-opus-5-5 Garden/Garden_summary.md beds veg compost
+set topics of Garden/Garden_summary.md: garden, vegetables, compost
+new: compost (labbrain vocabulary adds them to topics.yaml)
+$ labbrain topics --by claude-code/claude-opus-5-5 Garden/Garden_summary.md beds compost mulch soil worms
+4 new topics, and at most 3 may be new: compost, mulch, soil, worms (nothing was written; choose from topics.yaml first)
+```
+
+### labbrain vocabulary
+```
+labbrain vocabulary [--vault DIR]
+```
+Brings `topics.yaml` up to date with the topics the files use: the mapping from the files'
+`topics` to the wiki's vocabulary. Code only.
+- **Each topic in use that `topics.yaml` doesn't name,** as a topic or as a synonym, is added at
+  the end of the file with `status: new`. It writes `topics.yaml` if there is none.
+- **Nothing already in the file changes:** what people wrote there, comments included, stays as it
+  is. A file written as one `{…}` mapping can't be added to: it says so and exits with 2.
+- **Then it lists what waits for a person:** the topics with `status: new`; those spelled like
+  another topic or a synonym (`vegetable` and `vegetables`), to merge or keep; and the vetoed topics
+  that files still carry, with the files. How to review them is in
+  [the wiki's own config](configuration.md#the-wikis-own-config). Nothing waits for that review:
+  a new topic is searched and shared from the moment a file has it.
+- **Commit `topics.yaml` after it,** like any change to the wiki: its history then shows when each
+  topic came in, and what people decided about it.
+
+```
+$ labbrain vocabulary
+added to topics.yaml, with status: new (2): compost, vegetable
+new, for a person to review (2): compost, vegetable
+spelled like another topic, to merge or keep (1):
+  vegetable — vegetables
+$ tail -4 topics.yaml
+compost:
+  status: new
+vegetable:
+  status: new
+$ labbrain vocabulary
+topics.yaml names every topic in use
+new, for a person to review (2): compost, vegetable
+spelled like another topic, to merge or keep (1):
+  vegetable — vegetables
+```
+
+### labbrain curate
+```
+labbrain curate [--vault DIR]
+```
+The graph agent's work list (see the `graph` skill), worked out from [the graph](#labbrain-graph),
+which it brings up to date first. It writes nothing else.
+
+| section | lists | for |
+|---|---|---|
+| summaries without topics | each with its description | the agent: read the summary, then `labbrain topics` |
+| other files that may have topics and have none | agent-written files, and raw notes whose author allows agent metadata | the agent, the same way |
+| files with vetoed topics, to choose others for | files that carry a topic a person vetoed | the agent: other topics, with `labbrain topics` |
+| files no link reaches | files other than summaries with no link in or out | their authors: nothing to write |
+| links proposed between files that share topics | each pair the graph proposes, with the topics both have | their authors: add the link, or turn it down with [`labbrain reject`](#labbrain-reject) |
+
+Then how many files it left out because they aren't ingested yet (the `index` skill's work, not the
+graph agent's), the new topics waiting for a person to review, the topics no file has yet, and the
+tags in use with how many files have each. Without `topics.yaml`, it says so first: every topic set
+then is new.
+
+It ends with `work for the graph agent` and exits with 1 when the first three sections list
+anything; otherwise `nothing for the graph agent to do`, and 0. A nightly
+job that gets 0 stops before it calls a model.
+
+```
+$ labbrain curate
+summaries without topics (1):
+  Garden/Soil/Soil_summary.md — Soil — Summary
+      Compost notes for the garden beds.
+other files that may have topics and have none (1):
+  Kitchen/Session_2026-01-05.md — Planning session
+      A session that planned the next trials.
+files with vetoed topics, to choose others for (0)
+files no link reaches, for their authors (0)
+links proposed between files that share topics, for their authors (1):
+  Kitchen/Pickling.md — Shelf/Shelf_summary.md  (both: preserving, storage)
+left out, not for the graph agent: 2 file(s) not ingested yet: no header with a type, or not listed in their folder's index.md (labbrain graph lists them)
+new topics, for a person to review in topics.yaml: compost, vegetable
+work for the graph agent
+```
+
+### labbrain reject
+```
+labbrain reject [--by ACTOR] FILE FILE [--vault DIR]
+```
+Turns down the link [the graph](#labbrain-graph) proposes between two files, so it isn't proposed
+again. To accept a proposed link instead, add the link to one of the files.
+- **A person's call, never an agent's:** ACTOR is `human:<name>`, by default
+  `LABBRAIN_CONTRIBUTOR`. Any other actor is refused, with exit status 2.
+- **The two FILEs must be a proposed link,** in either order. Anything else prints
+  `not a link the graph proposes: …`, exits with 2 and records nothing.
+- **It adds one line to `_maps/rejected.jsonl`:** when, who, and the two files. Lines are added,
+  never rewritten. Every build of the graph reads them, and a line it can't read stops `graph`,
+  `search`, `curate` and `reject` with `bad record in _maps/rejected.jsonl, line N: …`.
+- **This file is not a cache,** unlike the rest of `_maps/`: nothing in the wiki records what
+  people turned down, so throwing it away brings the proposals back. It lives where git ignores
+  it, on the machine where it was run, until it moves to `patterns/` beside the traces of runs.
+- **A rejection names the two paths:** rename either file and the link can be proposed again.
+- **The page isn't redrawn:** run `labbrain graph` after.
+
+```
+$ labbrain reject --by human:ada Kitchen/Pickling.md Shelf/Shelf_summary.md
+rejected Kitchen/Pickling.md — Shelf/Shelf_summary.md; `labbrain graph` redraws the page without it
+$ labbrain reject --by human:ada Kitchen/Pickling.md Shelf/Shelf_summary.md
+not a link the graph proposes: Kitchen/Pickling.md — Shelf/Shelf_summary.md
+$ cat _maps/rejected.jsonl
+{"at": "2026-11-25T10:29:36Z", "by": "human:ada", "rejected": ["Kitchen/Pickling.md", "Shelf/Shelf_summary.md"]}
 ```
 
 ## Common sequences

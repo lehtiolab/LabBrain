@@ -10,21 +10,33 @@ write the raw notes; agents and code write the folder summaries and the `index.m
 make the notes findable. The `okf-conventions` skill has the rules behind them.
 
 **This skill only reads.** Don't edit any file, not even to fix a broken link or a stale summary.
-Report what you found; maintenance belongs to the `index` and `drift` skills.
+Report what you found; maintenance belongs to the `index` and `drift` skills. `labbrain search`
+writes only in `_maps/`, which isn't part of the wiki.
 
 ## Read cheapest first
-1. **The request names a file or folder:** go straight there and skip the map.
-2. **Otherwise start at the root `index.md`.** Its listing, and its map between `<!-- map:start -->`
-   and `<!-- map:end -->`, say where each topic, project and person lives.
-3. **Then the folder's `index.md`:** a generated listing with one line per note. The line is
-   often enough to pick the one note to open.
-4. **Then the folder summary** (`<Folder>_summary.md`). It covers every note in the folder, and in
-   any subfolder without a summary of its own. Each claim links to the note and heading it comes from.
-5. **A raw note only when the summary isn't enough,** or when the answer matters enough to check.
+Code narrows the wiki down before you read anything, so you never read the whole wiki to find a
+few files.
 
-Searching by keyword (grep) over titles, headings, and the descriptions in `index.md` files is cheap,
-so do it before reading whole notes. A hit can look relevant and still not answer the question, so
-read it before you answer.
+1. **The request names a file or folder:** go straight there and skip the rest of this list.
+2. **Otherwise run `labbrain search <words>`.** Code finds the files whose title, description,
+   path, tags or topics match, with the wiki's vocabulary of synonyms; if none do, the files whose
+   text does; then the files linked to them and the summaries over them. It lists each with why it
+   is there. Read the summaries it lists first, then the hits, then the linked files, and stop as
+   soon as you can answer.
+3. **If it finds nothing, or nothing that answers,** try the words the notes might use instead,
+   add `--text` to search the full text too, or `--depth 2` to follow links further.
+   - It searches ingested files only. If it prints `not searched: N file(s) not ingested yet`, the
+     newest notes aren't in its results: `labbrain graph` lists them, and you can read those.
+4. **If code still finds nothing, start at the root `index.md`.** Its listing, and its map between
+   `<!-- map:start -->` and `<!-- map:end -->`, say where each topic, project and person lives.
+5. **Then the folder's `index.md`:** a generated listing with one line per note. The line is
+   often enough to pick the one note to open.
+6. **Then the folder summary** (`<Folder>_summary.md`). It covers every note in the folder, and in
+   any subfolder without a summary of its own. Each claim links to the note and heading it comes from.
+7. **A raw note only when the summary isn't enough,** or when the answer matters enough to check.
+
+Searching by keyword (`labbrain search`, or grep) is cheap, so do it before reading whole notes.
+A hit can look relevant and still not answer the question, so read it before you answer.
 
 ## Trust, and when to check
 - **A summary is agent-written:** it is a map to the notes, not a source. When an answer rests on

@@ -40,12 +40,21 @@ jobs will run unattended at night.
 | part | role | state |
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
-| `labbrain.cli` | `labbrain <command>`, 8 commands; reads the settings | works |
-| `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`) | works |
+| `labbrain.okf.curate` | the graph agent's work list, from the graph; proposed links listed for their authors | experimental: being tried out |
+| `labbrain.okf.topics` | topics written into headers: from `topics.yaml` first, at most 3 new per file, vetoed ones refused; a raw note only with `annotate: true`, recorded in `annotated` | experimental: being tried out |
+| `labbrain.okf.vocabulary` | `topics.yaml` grown from the files: topics in use added at its end with `status: new`, never rewritten; people review (synonyms, narrower, merges, vetoes) | experimental: being tried out |
+| `labbrain.okf.search` | code-only search over the graph: headers, then full text, then links | experimental: being tried out |
+| `labbrain.okf.graph`, `.page` | the wiki's graph in `_maps/graph.json`: ingested files only (a header with a type, listed in their folder's `index.md`); a cache, rebuilt from changed files only, never committed; links proposed by code from shared topics, drawn dashed on the page from `graph_page.html` | experimental: being tried out |
+| `_maps/rejected.jsonl` | the proposed links people turned down, through `labbrain reject`: not a cache, and lost with `_maps/`; moves to `patterns/` later | experimental: being tried out |
+| `labbrain.okf.canvas`, `.hierarchy` | pictures of JSON and YAML data in `_maps/` (an Obsidian canvas or a web page), and the summaries as one tree to draw | experimental: being tried out |
+| `labbrain.cli` | `labbrain <command>`, 16 commands; reads the settings | works |
+| `labbrain.okf.config` | the wiki's own config: `labbrain.yaml` and `topics.yaml` at its root | works |
+| `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`, `LABBRAIN_VIEW`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
-| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift` | first versions |
+| `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift`; `canvas`, `graph` | first versions; `canvas` and `graph` experimental |
 | `patterns/` | trace and pattern formats, dummy examples | draft; no code writes them yet |
-| *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, search code, an MCP server | not started |
+| *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, an MCP server | not started |
+| *(wish list)* | finding relations between subjects that aren't obvious: the power of the graph; code proposes links from shared topics only | not started |
 | *(separate feature)* | task boards (Kanban): an Obsidian plugin's format, maybe a front-end feature later | not started; no board handling in the core |
 
 **One entry point:** `labbrain`, the same as `python -m labbrain`.
@@ -71,9 +80,10 @@ skills and patterns come back here by pull request; raw traces never do.
 - **Provenance is git blob hashes** (`git hash-object`), so `git cat-file -p` recovers the exact
   version a summary was built from.
 - **The frontmatter parser is hand-written,** so key order, flow mappings and quoting survive a
-  rewrite. No YAML library.
-- **The runtime is the standard library plus `python-dotenv`,** which reads `env/.env`. `git` is
-  the one system dependency.
+  rewrite. PyYAML never touches frontmatter: it reads and writes whole data files only.
+- **PyYAML reads with `safe_load`, never `load`:** a file's content is untrusted input.
+- **The runtime is the standard library plus `python-dotenv`,** which reads `env/.env`, **and
+  PyYAML.** `git` is the one system dependency.
 - **`labbrain.okf` returns data and `cli.py` prints it.** No `print` below the CLI.
 - **No state outlives a call.** A cache is made by the function that needs it and passed down
   (`history(vault, rel, cache)`). The night run is one process running many jobs, and a module-level
@@ -94,6 +104,10 @@ skills and patterns come back here by pull request; raw traces never do.
     - a file argument outside the vault is refused, before anything is written;
     - `links` removes `drift_verification` when it drops the last record, instead of leaving the
       key empty;
+    - nothing looks inside `_maps/` at the root of the wiki or of a repo in it, where labbrain
+      draws its pictures, nor at `labbrain.yaml` and `topics.yaml` at the wiki root;
+    - a bad wiki config stops every command, and `check` flags vetoed topics on files and topics
+      in use that `topics.yaml` doesn't list;
     - argparse handles usage and help.
 
 ---
@@ -114,8 +128,10 @@ from arguments and the environment: never hardcode URLs, keys, paths or people. 
 **A function is a capsule: everything it needs is in its arguments.**
 - Configuration is read once, at the edge (`cli.py`), and passed down. Nothing below it reads
   `os.environ` or `env/.env`.
-- **Settings are about the person, never the wiki.** A wiki-wide rule (thresholds, note types) is
-  not a setting: it would mean different things depending on who ran the job.
+- **Two levels of configuration.** A person's settings (`env/.env`) are about the person. A rule for
+  the whole wiki goes in `labbrain.yaml` or `topics.yaml` at the wiki root, committed and the same
+  for everyone; no setting overrides it, or it would mean different things depending on who ran the
+  job. Both are read once, in `cli.py`, and passed down field by field.
 - **A long signature beats a config object.** Nine named arguments are honest; a bag hides which
   fields are used.
 - **The tell is untestability.** A function that reads its own module can only be tested by patching.
@@ -210,6 +226,11 @@ and silently carried into projects where it doesn't apply.
     path the fixture stops reaching then fails loudly, instead of passing parity by never running.
   - **The fixture's `.gitignore` is written by `conftest.py`.** Committed inside
     `tests/fixtures/vault/`, it would hide files from this repo.
+- **A real wiki is a test bed, never the template.** Other labs' wikis will look nothing like the
+  one a change is tried on: code, skills and docs stay general, and examples come from the fixture.
+- **A wiki runs labbrain from its own checkout of this repo, never from this working copy,** as the
+  wiki's own AGENT.md says. Read that first; run nothing on a real wiki from here unless asked, and
+  then say which checkout ran it. Nothing about one wiki goes in this repo, its log included.
 - **`.gitignore` is a denylist:** a new file is tracked unless a rule says otherwise.
   `patterns/traces/` is denied, because real traces contain a lab's data. `env/.env` is denied and
   `env/.env.example` let back in.

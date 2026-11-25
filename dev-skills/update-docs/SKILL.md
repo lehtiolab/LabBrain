@@ -39,6 +39,7 @@ The code is the source, and the docs follow it. When one of these changes, updat
 | options, defaults, output, exit status | `parser()` and `main()` in `cli.py` | `docs/usage.md` |
 | how to run labbrain from a wiki | `pixi.toml` | `README.md`, `docs/usage.md`, the *Running labbrain* section of each skill in `skills/`, word for word the same in each |
 | the settings | `SETTINGS` and `settings()` in `cli.py` | `env/.env.example`, `docs/configuration.md` |
+| the wiki's config | `wiki_config()` in `okf/config.py` | `docs/configuration.md`, `skills/okf-conventions/SKILL.md` |
 | how the package differs from `okf_vault.sh` | `tests/test_parity.py`, `tests/test_cli.py` | `AGENT.md` (known differences) |
 | the repo's layout | the folders | `README.md` (Layout), `docs/how-it-works.md`, `AGENT.md` (What LabBrain is) |
 | the skills | `skills/` | `README.md` (Skills), `docs/how-it-works.md` |
