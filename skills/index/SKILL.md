@@ -25,8 +25,10 @@ If it needs a note to be read, the model writes it.
 | which summaries are stale, and why | code: `labbrain stale` |
 | a summary's title, description and body | **the model** (the `summary-writing` skill) |
 | a summary's sources, hashes, parent, children and time | code: `labbrain stamp` |
+| a summary's topics | **the model** chooses them; code checks and writes them: `labbrain topics` |
 | parent summaries, related links, the map, the log entry | **the model** |
 | the `index.md` listings | code: `labbrain index` |
+| new topics into `topics.yaml` | code: `labbrain vocabulary` |
 | conformance | code: `labbrain check` |
 
 The nightly job runs the code steps itself, and calls a model only for the summaries whose notes
@@ -49,13 +51,14 @@ changed, so a quiet night costs nothing. When you run this skill by hand, you do
    …"), add it to the related block of its folder's `index.md`, creating the block if there isn't
    one. Never add it to the note. If the target is unclear, stop and ask.
 7. **Listings.** `labbrain index` regenerates every `index.md` listing and keeps the map and the
-   related blocks as they are.
+   related blocks as they are. Then `labbrain vocabulary` adds the new topics the summaries got to
+   `topics.yaml`.
 8. **The map** in the root `index.md`. Add every new note and folder to its section, with a few
    words on what it is, and fix the entries for files that were moved, renamed or deleted. Every
    folder should be reachable from the root `index.md`.
 9. **Log.** Add one entry under today's date (`## YYYY-MM-DD`) to the `log.md` of each repo whose
    files changed. Say which notes got headers, which summaries were rebuilt, re-stamped or created,
-   and what changed in the map.
+   which new topics `labbrain vocabulary` added, and what changed in the map.
 10. **Check.** `labbrain check` must end with `OK`. If it doesn't, fix what it points to (usually a
     missing `stamp` or `index`) before you report.
 

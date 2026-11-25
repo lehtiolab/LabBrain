@@ -1,11 +1,11 @@
-"""Topics from the vocabulary, written by code: on summaries, agent-written files, and raw notes
-whose author allows it."""
+"""Topics written by code: from the vocabulary first, a few new ones at a time, on summaries,
+agent-written files, and raw notes whose author allows it."""
 
 import pytest
 
 from labbrain.cli import main
 from labbrain.okf.frontmatter import fm_list, split_fm
-from labbrain.okf.topics import NoTopicsHere, NotTopics, canonical, set_topics
+from labbrain.okf.topics import NoTopicsHere, NotTopics, TooManyNew, canonical, set_topics
 
 VOCABULARY = "garden: {synonyms: [beds]}\nvegetables: {synonyms: [veg]}\npreserving:\n"
 TOPICS = {
@@ -19,11 +19,25 @@ def header(vault, rel):
     return split_fm((vault / rel).read_text())[0]
 
 
-def test_a_synonym_names_its_topic():
-    assert canonical(["Beds", "veg", "garden"], TOPICS) == ["garden", "vegetables"]
+def test_a_word_names_its_topic_or_a_new_one():
+    """Itself or by a synonym, in any case and spacing; else a new topic, written the same way."""
+    assert canonical(["Beds", "veg", "garden"], TOPICS) == (["garden", "vegetables"], [])
+    assert canonical(["garden", "Seed Saving", "compost"], TOPICS) == (
+        ["garden", "seed-saving", "compost"],
+        ["seed-saving", "compost"],
+    )
+
+
+def test_what_it_refuses():
+    topics = {**TOPICS, "weeds": {"synonyms": ["weeding"], "narrower": [], "status": "vetoed"}}
     with pytest.raises(NotTopics) as e:
-        canonical(["garden", "compost", "soil"], TOPICS)
-    assert e.value.words == ["compost", "soil"]
+        canonical(["garden", "Weeding"], topics)
+    assert (e.value.words, e.value.why) == (["weeds"], "vetoed in topics.yaml")
+    with pytest.raises(NotTopics, match="no letter or digit"):
+        canonical(["garden", "***"], TOPICS)
+    with pytest.raises(TooManyNew) as e:
+        canonical(["compost", "soil", "worms", "mulch", "garden"], TOPICS)
+    assert e.value.words == ["compost", "soil", "worms", "mulch"]
 
 
 def test_a_summary_keeps_its_key_order(vault):
@@ -85,25 +99,38 @@ def test_the_command(vault, monkeypatch, capsys):
     monkeypatch.chdir(vault)
     summary = "Garden/Garden_summary.md"
     before = (vault / summary).read_text()
-    assert main(["topics", "--by", "agent/test", summary, "beds", "compost"]) == 2
+    four = ["compost", "soil", "worms", "mulch"]
+    assert main(["topics", "--by", "agent/test", summary, "beds", *four]) == 2
     assert (vault / summary).read_text() == before  # nothing written
     assert main(["topics", summary, "garden"]) == 2  # no --by
     assert main(["topics", "--by", "ada@example.org", summary, "garden"]) == 2
     assert main(["topics", "--by", "agent/test", summary, "beds", "veg"]) == 0
     assert main(["topics", "--by", "agent/test", summary, "garden", "vegetables"]) == 0
+    assert main(["topics", "--by", "agent/test", summary, "garden", "Compost"]) == 0
     out = capsys.readouterr().out.splitlines()
-    assert out[0] == "not in topics.yaml: compost (nothing was written; propose them to a person)"
-    assert out[-2:] == [
+    assert out[0] == (
+        "4 new topics, and at most 3 may be new: compost, soil, worms, mulch (nothing was "
+        "written; choose from topics.yaml first)"
+    )
+    assert out[-4:] == [
         "set topics of %s: garden, vegetables" % summary,
         "unchanged: %s: garden, vegetables" % summary,
+        "set topics of %s: garden, compost" % summary,
+        "new: compost (labbrain vocabulary adds them to topics.yaml)",
     ]
 
 
-def test_check_flags_a_topic_outside_the_vocabulary(vault, capsys):
-    (vault / "topics.yaml").write_text(VOCABULARY)
+def test_check_flags_vetoed_topics_and_a_vocabulary_behind_the_files(vault, capsys):
+    (vault / "topics.yaml").write_text(VOCABULARY + "weeds: {status: vetoed}\n")
     shelf = vault / "Shelf" / "Shelf_summary.md"
     shelf.write_text(
-        shelf.read_text().replace("type: Folder Summary", "type: Folder Summary\ntopics: [jars]")
+        shelf.read_text().replace(
+            "type: Folder Summary", "type: Folder Summary\ntopics: [jars, Weeds, veg]"
+        )
     )
     main(["check", "--vault", str(vault)])
-    assert "Shelf/Shelf_summary.md: topics not in topics.yaml: jars" in capsys.readouterr().out
+    out = capsys.readouterr().out.splitlines()
+    assert (
+        "Shelf/Shelf_summary.md: vetoed in topics.yaml, choose others (run: topics): weeds" in out
+    )
+    assert "topics.yaml: topics in use it doesn't list (run: vocabulary): jars" in out

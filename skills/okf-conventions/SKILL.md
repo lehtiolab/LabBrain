@@ -77,11 +77,10 @@ sources:                         # every file it was built from, with its git bl
 - **You write `title`, `description` and the body. Code writes the rest.** Run
   `labbrain stamp --by <actor> <summary>`: it lists the sources, hashes them, and sets `generated`,
   `parent` and `children`. Never fill these in by hand.
-- **`topics`,** optional, lists what the summary is about, from the wiki's vocabulary in
-  `topics.yaml`: `topics: [proteomics, normalization]`. Set it with
-  `labbrain topics --by <actor> <summary> <topic>...`, never by hand. A topic that isn't in the
-  vocabulary is a proposal for a person, not a value to write; `labbrain check` flags one. The
-  graph and search read it.
+- **`topics`,** optional, lists what the summary is about: `topics: [proteomics, normalization]`.
+  Choose from the wiki's vocabulary in `topics.yaml` first; at most three may be new. Set it with
+  `labbrain topics --by <actor> <summary> <topic>...`, never by hand. `labbrain vocabulary` adds
+  new topics to `topics.yaml`, for a person to review. The graph and search read it.
 - **`sources`** are every text file in the folder, plus the files in subfolders that have no summary
   of their own. They never include the summary itself, `index.md` or `log.md`.
 - **Why a hash:** it is the git blob id. `git cat-file -p <hash>`, run in the owning repo, prints the
@@ -106,10 +105,13 @@ sources:                         # every file it was built from, with its git bl
 - **`log.md`** at each bundle root records changes, newest first, under `## YYYY-MM-DD` headings.
 - **`_maps/`** at the root of the wiki, or of a git repo in it, holds the pictures labbrain draws. Git ignores it, labbrain never
   reads it, and nothing in it is part of the wiki: no summary covers it and no listing shows it.
-  Never write there by hand.
+  Never write there by hand. One file there isn't a picture or a cache: `_maps/rejected.jsonl`, the
+  proposed links people turned down with `labbrain reject`.
 - **`labbrain.yaml` and `topics.yaml`** at the wiki root are the wiki's own config: rules and the
   topic vocabulary, the same for everyone. They are committed and changed by review. No summary
-  covers them and no listing shows them. An agent proposes changes to them; it never makes them.
+  covers them and no listing shows them. Only `labbrain vocabulary` adds to `topics.yaml`, at its
+  end; synonyms, narrower topics, merges and vetoes are a person's. An agent never edits either by
+  hand.
 
 ## Drift verification
 A summary can be current by hash and still say something its notes no longer say. The `drift`
@@ -146,8 +148,10 @@ Links can cross between them, and each change is committed in the repo that owns
 | `labbrain canvas FILE...` | draws JSON or YAML files as trees of boxes | pictures in `_maps/` only |
 | `labbrain graph` | the wiki's graph, a cache rebuilt from changed files | `_maps/` only |
 | `labbrain search WORD... [--depth N] [--text]` | files by header, then text, then links; code only | `_maps/` only |
-| `labbrain topics --by ACTOR FILE TOPIC...` | sets a file's topics from the vocabulary; a raw note only with its author's consent | `topics`, and a note's `annotated` |
+| `labbrain topics --by ACTOR FILE TOPIC...` | sets a file's topics, from the vocabulary first, at most 3 new; a raw note only with its author's consent | `topics`, and a note's `annotated` |
+| `labbrain vocabulary` | adds the topics files use to `topics.yaml`, as new, and lists what waits for review | `topics.yaml`, at its end only |
 | `labbrain curate` | the graph agent's work list, from the graph | `_maps/` only |
+| `labbrain reject --by human:NAME FILE FILE` | a person turns down a link the graph proposes | `_maps/rejected.jsonl` only |
 | `labbrain hierarchy [FOLDER...]` | the summaries, of the wiki or of each FOLDER, as one tree with their links, and its picture | `_maps/` only |
 
 ## Running labbrain

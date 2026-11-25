@@ -47,6 +47,7 @@ def test_the_config(tmp_path):
         ("topics.yaml", "cancer: {broader: [disease]}\n", "cancer"),
         ("topics.yaml", "cancer: {synonyms: tumour}\n", "cancer"),
         ("topics.yaml", "cancer: {narrower: [neoantigen]}\n", "cancer.narrower"),
+        ("topics.yaml", "cancer: {status: maybe}\n", "cancer.status"),
     ],
 )
 def test_what_it_refuses(tmp_path, name, text, where):
@@ -54,6 +55,13 @@ def test_what_it_refuses(tmp_path, name, text, where):
     with pytest.raises(BadWikiConfig) as e:
         wiki_config(str(tmp_path))
     assert (e.value.path, e.value.where) == (name, where)
+
+
+def test_a_topics_status(tmp_path):
+    """new until a person reviews it, vetoed when a person says no; none once reviewed."""
+    (tmp_path / "topics.yaml").write_text("cancer:\nlfq: {status: new}\nweeds: {status: vetoed}\n")
+    topics = wiki_config(str(tmp_path)).topics
+    assert [t.get("status") for t in topics.values()] == [None, "new", "vetoed"]
 
 
 def test_a_bad_config_stops_every_command(vault, capsys):

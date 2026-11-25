@@ -1,8 +1,9 @@
-"""Topics from the wiki's vocabulary, set on a file's header: a summary or another agent-written
-file, or a raw note whose author allows agent metadata (`annotate: true`).
+"""Topics set on a file's header: a summary or another agent-written file, or a raw note whose
+author allows agent metadata (`annotate: true`).
 
-The model chooses the topics; this code checks them against topics.yaml and writes them, with the
-`annotated` entry OKF asks for on a raw note (skills/okf-conventions).
+The model chooses the topics, from topics.yaml first. This code maps each word to the topic it
+names, lets a few new ones through, and writes them, with the `annotated` entry OKF asks for on a
+raw note (skills/okf-conventions). `labbrain vocabulary` then adds the new ones to topics.yaml.
 """
 
 import os
@@ -28,14 +29,25 @@ ANNOTATED = re.compile(
 )
 
 
-class NotTopics(Exception):
-    """Words that name no topic in the wiki's vocabulary."""
+MAX_NEW = 3  # new topics a file may bring at once, beyond those in topics.yaml
 
-    def __init__(self, words):
-        self.words = words
+
+class NotTopics(Exception):
+    """Words labbrain won't write as topics."""
+
+    def __init__(self, words, why):
+        self.words, self.why = words, why
+        super().__init__("%s: %s (nothing was written)" % (why, ", ".join(words)))
+
+
+class TooManyNew(Exception):
+    """More new topics for one file than MAX_NEW."""
+
+    def __init__(self, words, most):
+        self.words, self.most = words, most
         super().__init__(
-            "not in topics.yaml: %s (nothing was written; propose them to a person)"
-            % ", ".join(words)
+            "%d new topics, and at most %d may be new: %s (nothing was written; choose from "
+            "topics.yaml first)" % (len(words), most, ", ".join(words))
         )
 
 
@@ -47,16 +59,36 @@ class NoTopicsHere(Exception):
         super().__init__("topics not set on %s: %s" % (path, why))
 
 
+def as_topic(word):
+    """A word as a topic is written: lower case, with hyphens between its parts."""
+    return re.sub(r"[\W_]+", "-", word.lower()).strip("-")
+
+
+def topic_names(topics):
+    """{key of a name or a synonym: the topic's name}; a name wins over another topic's synonym."""
+    out = {as_topic(n): n for n in topics}
+    for n, t in topics.items():
+        for w in t["synonyms"]:
+            out.setdefault(as_topic(w), n)
+    return out
+
+
 def canonical(words, topics):
-    """Each word as the topic it names, itself or by a synonym, in order, each once."""
-    names = {}
-    for name, t in topics.items():
-        for w in (name, *t["synonyms"]):
-            names.setdefault(w.lower(), name)
-    unknown = [w for w in words if w.lower() not in names]
-    if unknown:
-        raise NotTopics(unknown)
-    return list(dict.fromkeys(names[w.lower()] for w in words))
+    """(names, new): each word as the topic it names, itself or by a synonym, else as a new topic,
+    in order and each once; and the new ones. Refuses vetoed topics, words with no letter or
+    digit, and more than MAX_NEW new topics."""
+    idx = topic_names(topics)
+    empty = [w for w in words if not as_topic(w)]
+    if empty:
+        raise NotTopics(empty, "no letter or digit")
+    names = list(dict.fromkeys(idx.get(as_topic(w), as_topic(w)) for w in words))
+    vetoed = [n for n in names if topics.get(n, {}).get("status") == "vetoed"]
+    if vetoed:
+        raise NotTopics(vetoed, "vetoed in topics.yaml")
+    new = [n for n in names if n not in topics]
+    if len(new) > MAX_NEW:
+        raise TooManyNew(new, MAX_NEW)
+    return names, new
 
 
 def entry(by, at, keys):
@@ -78,7 +110,7 @@ def annotated_lines(fm, by, at, key):
 
 
 def set_topics(vault, rel, names, by, at=None):
-    """Write topics (checked by canonical()) into rel's header. True if the file changed.
+    """Write topics (from canonical()) into rel's header. True if the file changed.
 
     A summary keeps its canonical key order. A raw note needs `annotate: true` from its author,
     and gets by's entry in `annotated`; its text is never touched.

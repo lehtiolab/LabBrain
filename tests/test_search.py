@@ -6,6 +6,7 @@ import pytest
 
 from labbrain.cli import main
 from labbrain.okf.graph import build_graph
+from labbrain.okf.index import build_indexes
 from labbrain.okf.search import meanings, search, slug
 
 TOPICS = {
@@ -15,7 +16,7 @@ TOPICS = {
 
 
 def found(vault, query, topics=None, **kw):
-    graph, _ = build_graph(str(vault), {})
+    graph, _ = build_graph(str(vault), {}, set(), {})
     return search(str(vault), graph, query, topics or {}, **kw)
 
 
@@ -45,8 +46,11 @@ def test_step_1_the_headers(vault):
 
 def test_hyphens_and_underscores_are_spaces(vault):
     """Folder-named titles use underscores; topics use hyphens."""
-    (vault / "Garden" / "Seeds" / "Seed_saving_tips.md").write_text("# Seed_saving_tips\n")
-    graph, _ = build_graph(str(vault), {})
+    tips = vault / "Garden" / "Seeds" / "Seed_saving_tips.md"
+    tips.write_text("---\ntype: Note\n---\n# Seed_saving_tips\n")
+    assert found(vault, "seed saving", depth=0)["nodes"] == []  # not ingested: no index lists it
+    build_indexes(str(vault))
+    graph, _ = build_graph(str(vault), {}, set(), {})
     for query in ("seed saving", "seed-saving", "Seed_Saving"):
         nodes = search(str(vault), graph, query, {}, depth=0)["nodes"]
         assert [n["id"] for n in nodes if "hit" in n] == ["Garden/Seeds/Seed_saving_tips.md"], query
@@ -96,6 +100,8 @@ def test_the_command(vault, capsys):
     assert main(["search", "--vault", str(vault), "Brine"]) == 0
     assert capsys.readouterr().out.splitlines() == [
         "looked for: brine",
+        "not searched: 3 file(s) not ingested yet: no header with a type, or not listed in their "
+        "folder's index.md (labbrain graph lists them)",
         "step 2, the full text: 1 file(s)",
         "  Kitchen/Pickling.md — Pickling  (3 matches)",
         "step 3, linked up to 1 away: 1 file(s)",

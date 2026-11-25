@@ -25,6 +25,8 @@ few files.
    soon as you can answer.
 3. **If it finds nothing, or nothing that answers,** try the words the notes might use instead,
    add `--text` to search the full text too, or `--depth 2` to follow links further.
+   - It searches ingested files only. If it prints `not searched: N file(s) not ingested yet`, the
+     newest notes aren't in its results: `labbrain graph` lists them, and you can read those.
 4. **If code still finds nothing, start at the root `index.md`.** Its listing, and its map between
    `<!-- map:start -->` and `<!-- map:end -->`, say where each topic, project and person lives.
 5. **Then the folder's `index.md`:** a generated listing with one line per note. The line is

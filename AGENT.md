@@ -40,18 +40,21 @@ jobs will run unattended at night.
 | part | role | state |
 |---|---|---|
 | `labbrain.okf` | OKF mechanics: frontmatter, git hashes, summaries, links, `index.md`, drift, check | works; moved from `okf_vault.sh` unchanged, held by parity tests |
-| `labbrain.okf.curate` | the graph agent's work list, from the graph | experimental: being tried out |
-| `labbrain.okf.topics` | topics from the vocabulary written into headers; a raw note only with `annotate: true`, recorded in `annotated` | experimental: being tried out |
+| `labbrain.okf.curate` | the graph agent's work list, from the graph; proposed links listed for their authors | experimental: being tried out |
+| `labbrain.okf.topics` | topics written into headers: from `topics.yaml` first, at most 3 new per file, vetoed ones refused; a raw note only with `annotate: true`, recorded in `annotated` | experimental: being tried out |
+| `labbrain.okf.vocabulary` | `topics.yaml` grown from the files: topics in use added at its end with `status: new`, never rewritten; people review (synonyms, narrower, merges, vetoes) | experimental: being tried out |
 | `labbrain.okf.search` | code-only search over the graph: headers, then full text, then links | experimental: being tried out |
-| `labbrain.okf.graph`, `.page` | the wiki's graph in `_maps/graph.json`: a cache, rebuilt from changed files only, never committed; and the page to explore it, from `graph_page.html` | experimental: being tried out |
+| `labbrain.okf.graph`, `.page` | the wiki's graph in `_maps/graph.json`: ingested files only (a header with a type, listed in their folder's `index.md`); a cache, rebuilt from changed files only, never committed; links proposed by code from shared topics, drawn dashed on the page from `graph_page.html` | experimental: being tried out |
+| `_maps/rejected.jsonl` | the proposed links people turned down, through `labbrain reject`: not a cache, and lost with `_maps/`; moves to `patterns/` later | experimental: being tried out |
 | `labbrain.okf.canvas`, `.hierarchy` | pictures of JSON and YAML data in `_maps/` (an Obsidian canvas or a web page), and the summaries as one tree to draw | experimental: being tried out |
-| `labbrain.cli` | `labbrain <command>`, 14 commands; reads the settings | works |
+| `labbrain.cli` | `labbrain <command>`, 16 commands; reads the settings | works |
 | `labbrain.okf.config` | the wiki's own config: `labbrain.yaml` and `topics.yaml` at its root | works |
 | `env/` | `.env.example`; a person's `.env` (`LABBRAIN_CONTRIBUTOR`, `LABBRAIN_VAULT`, `LABBRAIN_ANNOTATE`, `LABBRAIN_VIEW`) | works |
 | `docs/` | how-to guides, usage, configuration; no per-function reference yet | first versions |
 | `skills/` | `search`, `okf-conventions`, `summary-writing`, `index`, `drift`; `canvas`, `graph` | first versions; `canvas` and `graph` experimental |
 | `patterns/` | trace and pattern formats, dummy examples | draft; no code writes them yet |
 | *(planned)* | `llm()` with the model and preferences settings, the jobs, the night-run dispatcher, an MCP server | not started |
+| *(wish list)* | finding relations between subjects that aren't obvious: the power of the graph; code proposes links from shared topics only | not started |
 | *(separate feature)* | task boards (Kanban): an Obsidian plugin's format, maybe a front-end feature later | not started; no board handling in the core |
 
 **One entry point:** `labbrain`, the same as `python -m labbrain`.
@@ -103,7 +106,8 @@ skills and patterns come back here by pull request; raw traces never do.
       key empty;
     - nothing looks inside `_maps/` at the root of the wiki or of a repo in it, where labbrain
       draws its pictures, nor at `labbrain.yaml` and `topics.yaml` at the wiki root;
-    - a bad wiki config stops every command, and `check` flags topics not in the vocabulary;
+    - a bad wiki config stops every command, and `check` flags vetoed topics on files and topics
+      in use that `topics.yaml` doesn't list;
     - argparse handles usage and help.
 
 ---
@@ -222,6 +226,11 @@ and silently carried into projects where it doesn't apply.
     path the fixture stops reaching then fails loudly, instead of passing parity by never running.
   - **The fixture's `.gitignore` is written by `conftest.py`.** Committed inside
     `tests/fixtures/vault/`, it would hide files from this repo.
+- **A real wiki is a test bed, never the template.** Other labs' wikis will look nothing like the
+  one a change is tried on: code, skills and docs stay general, and examples come from the fixture.
+- **A wiki runs labbrain from its own checkout of this repo, never from this working copy,** as the
+  wiki's own AGENT.md says. Read that first; run nothing on a real wiki from here unless asked, and
+  then say which checkout ran it. Nothing about one wiki goes in this repo, its log included.
 - **`.gitignore` is a denylist:** a new file is tracked unless a rule says otherwise.
   `patterns/traces/` is denied, because real traces contain a lab's data. `env/.env` is denied and
   `env/.env.example` let back in.

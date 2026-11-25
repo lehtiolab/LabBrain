@@ -105,22 +105,45 @@ graph:
   in the wiki, so the page works for people who open it from a server without a copy of the wiki.
   Without it, the links are relative to the page.
 
-**`topics.yaml`:** the wiki's vocabulary, one key per topic.
+**`topics.yaml`:** the wiki's vocabulary, one key per topic. It grows from the files, and people
+decide what it means.
 ```yaml
 cancer:
   synonyms: [tumour, tumor, oncology]
   narrower: [neoantigen]
 neoantigen:
+lfq:
+  status: new
+weeds:
+  status: vetoed
 ```
 - **`synonyms`:** other words for the topic. A search for any of them finds the topic.
 - **`narrower`:** more specific topics, each a key of the file. A search for `cancer` also finds
   `neoantigen`, but not the other way round.
+- **`status`:** `new` for a topic that `labbrain vocabulary` added and nobody has reviewed yet,
+  `vetoed` for one a person turned down. Without a status, the topic has been reviewed.
+
+**How it grows.** A model setting a file's topics chooses from this file first, and may add up to 3
+new ones per file ([`labbrain topics`](usage.md#labbrain-topics)). A new topic is used straight
+away. [`labbrain vocabulary`](usage.md#labbrain-vocabulary) then adds it at the end of this file,
+with `status: new`. labbrain only ever adds to the file, so what people wrote here, comments
+included, stays as it is.
+
+**Reviewing a new topic,** in this file, committed like any change:
+- **keep it:** delete its `status: new`, and give it synonyms or narrower topics if it has some;
+- **merge it into another:** delete its entry, and add its word to the other topic's synonyms.
+  Files that carry it count as the other topic from then on, and none needs rewriting;
+- **veto it:** set `status: vetoed`. `labbrain topics` refuses it from then on, and `check` and
+  `curate` list the files that still carry it, so the graph agent chooses others for them.
+
+Nothing waits for the review: it only adds what a person knows, how a topic relates to the others.
 
 Summaries carry the topics they cover as `topics: [cancer]` in their frontmatter (see the
 [okf-conventions](../skills/okf-conventions/SKILL.md) skill).
 
 **Mistakes it refuses:** a key labbrain doesn't know, a value of the wrong kind, a `file_url` without
-`{path}`, a narrower topic that isn't in the file, or a file that isn't valid YAML. Every command
+`{path}`, a narrower topic that isn't in the file, a `status` other than `new` or `vetoed`, or a
+file that isn't valid YAML. Every command
 then prints `bad wiki config in <file>: …` and exits with 2.
 
 ## Coming later

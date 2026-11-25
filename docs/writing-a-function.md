@@ -30,9 +30,10 @@ There is one module per subject, in `src/labbrain/okf/`:
 | `drift.py` | hot files and drift checks |
 | `canvas.py` | pictures of JSON and YAML data, in `_maps/` |
 | `hierarchy.py` | the folder summaries as one tree, with the links between them |
-| `graph.py` | the wiki's graph: nodes, edges, and the cache of what each file holds |
+| `graph.py` | the wiki's graph: its ingested files, edges, the links it proposes, the rejections, and the cache of what each file holds |
 | `curate.py` | the graph agent's work list, from the graph |
-| `topics.py` | topics from the vocabulary, written into headers |
+| `topics.py` | topics written into headers: from the vocabulary first, a few new ones at a time |
+| `vocabulary.py` | `topics.yaml` grown from the files: new topics added at its end, and what waits for review |
 | `search.py` | code-only search over the graph: headers, full text, links |
 | `page.py` | the graph page; its HTML and JavaScript are in `graph_page.html` beside it |
 | `check.py` | `check`: every conformance test at once |

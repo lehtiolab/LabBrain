@@ -9,6 +9,7 @@ import yaml
 from .files import CONFIG, TOPICS, read
 
 TOPIC_KEYS = ("synonyms", "narrower")
+STATUSES = ("new", "vetoed")  # a topic without a status has been reviewed
 
 
 class BadWikiConfig(Exception):
@@ -25,7 +26,8 @@ class WikiConfig:
 
     hidden: tuple = ()  # note types the graph page starts with hidden
     file_url: str | None = None  # where the graph page's links lead; {path} is the file's path
-    topics: dict = field(default_factory=dict)  # topic -> {"synonyms": [...], "narrower": [...]}
+    # topic -> {"synonyms": [...], "narrower": [...]}, and "status" where the file gives one
+    topics: dict = field(default_factory=dict)
 
 
 def load_yaml(vault, rel):
@@ -61,11 +63,15 @@ def wiki_config(vault):
     topics = {}
     for name, t in raw.items():
         t = t or {}
-        if not isinstance(t, dict) or set(t) - set(TOPIC_KEYS):
-            raise BadWikiConfig(TOPICS, str(name), "only the keys synonyms and narrower")
+        if not isinstance(t, dict) or set(t) - {*TOPIC_KEYS, "status"}:
+            raise BadWikiConfig(TOPICS, str(name), "only the keys synonyms, narrower and status")
         if not all(words(t.get(k, [])) for k in TOPIC_KEYS):
             raise BadWikiConfig(TOPICS, str(name), "synonyms and narrower, each a list of words")
+        if t.get("status", "new") not in STATUSES:
+            raise BadWikiConfig(TOPICS, "%s.status" % name, " or ".join(STATUSES))
         topics[str(name)] = {k: list(t.get(k, [])) for k in TOPIC_KEYS}
+        if "status" in t:
+            topics[str(name)]["status"] = t["status"]
     for name, t in topics.items():
         unknown = [n for n in t["narrower"] if n not in topics]
         if unknown:
